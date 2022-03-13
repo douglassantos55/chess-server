@@ -35,6 +35,6 @@ func (s *Server) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-    for {
-    }
+	for {
+	}
 }

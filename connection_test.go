@@ -9,10 +9,10 @@ func StartServer() *Server {
 	server := NewServer()
 	go server.Listen("0.0.0.0:8080")
 
-    // haunts my dreams
+	// ...
 	time.Sleep(time.Millisecond)
 
-    return server
+	return server
 }
 
 func TestAcceptsConnection(t *testing.T) {
