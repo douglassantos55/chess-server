@@ -3,7 +3,8 @@ package main
 import "github.com/google/uuid"
 
 type Player struct {
-	Id uuid.UUID
+	Id       uuid.UUID
+	Incoming chan Response
 }
 
 func NewPlayer() *Player {
@@ -12,6 +13,11 @@ func NewPlayer() *Player {
 	// Adding a unique ID creates different
 	// instances/pointers
 	return &Player{
-		Id: uuid.New(),
+		Id:       uuid.New(),
+		Incoming: make(chan Response),
 	}
+}
+
+func (p *Player) Send(response Response) {
+	p.Incoming <- response
 }
