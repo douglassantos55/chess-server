@@ -7,13 +7,19 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type Server struct {
-	server *http.Server
+type Handler interface {
+	Process(event Message)
 }
 
-func NewServer() *Server {
+type Server struct {
+	server   *http.Server
+	handlers []Handler
+}
+
+func NewServer(handlers []Handler) *Server {
 	return &Server{
-		server: &http.Server{},
+		handlers: handlers,
+		server:   &http.Server{},
 	}
 }
 
@@ -29,12 +35,22 @@ func (s *Server) Listen(addr string) {
 
 func (s *Server) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{}
-	_, err := upgrader.Upgrade(w, r, nil)
+	socket, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
 		return
 	}
 
+	player := NewPlayer(socket)
+
 	for {
+		defer player.Close()
+
+		message := <-player.Incoming
+		message.Player = player
+
+		for _, handler := range s.handlers {
+			handler.Process(message)
+		}
 	}
 }

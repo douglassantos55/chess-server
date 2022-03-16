@@ -6,17 +6,16 @@ import (
 )
 
 func TestReturnsResponse(t *testing.T) {
-	queueManager := NewQueueManager()
-	player := NewPlayer()
-
-	// channels without goroutines are a nono
-	go queueManager.Process(Message{
-		Type:   QueueUp,
-		Player: player,
+	server := StartServer([]Handler{
+		NewQueueManager(),
 	})
+	defer server.Shutdown()
+
+	client, _ := NewClient()
+	client.Send(QueueUp)
 
 	select {
-	case res := <-player.Incoming:
+	case res := <-client.Incoming:
 		if res.Type != WaitForMatch {
 			t.Errorf("Expected wait for match, got %+v", res)
 		}
@@ -26,31 +25,33 @@ func TestReturnsResponse(t *testing.T) {
 }
 
 func TestInvalidType(t *testing.T) {
-	queueManager := NewQueueManager()
-	player := NewPlayer()
-
-	go queueManager.Process(Message{
-		Type:   "something",
-		Player: player,
+	server := StartServer([]Handler{
+		NewQueueManager(),
 	})
+	defer server.Shutdown()
+
+	client, _ := NewClient()
+	client.Send("something")
 
 	select {
-	case <-time.After(time.Second):
-	case <-player.Incoming:
+	case <-time.After(100 * time.Millisecond):
+	case <-client.Incoming:
 		t.Error("Should not get response")
 	}
 }
 
 func TestAddsToQueue(t *testing.T) {
 	queueManager := NewQueueManager()
-	player := NewPlayer()
 
-	go queueManager.Process(Message{
-		Type:   QueueUp,
-		Player: player,
+	server := StartServer([]Handler{
+		queueManager,
 	})
+	defer server.Shutdown()
 
-	time.Sleep(time.Millisecond)
+	client, _ := NewClient()
+	client.Send(QueueUp)
+
+    time.Sleep(time.Millisecond)
 
 	if queueManager.queue.Pop() == nil {
 		t.Error("Expected head to be player")

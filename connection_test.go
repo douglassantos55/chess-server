@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-func StartServer() *Server {
-	server := NewServer()
+func StartServer(handlers []Handler) *Server {
+	server := NewServer(handlers)
 	go server.Listen("0.0.0.0:8080")
 
 	// ...
@@ -16,7 +16,7 @@ func StartServer() *Server {
 }
 
 func TestAcceptsConnection(t *testing.T) {
-	server := StartServer()
+	server := StartServer([]Handler{})
 	defer server.Shutdown()
 
 	_, err := NewClient()
@@ -27,7 +27,7 @@ func TestAcceptsConnection(t *testing.T) {
 }
 
 func TestShutdown(t *testing.T) {
-	server := StartServer()
+	server := StartServer([]Handler{})
 	server.Shutdown()
 
 	_, err := NewClient()
@@ -38,7 +38,7 @@ func TestShutdown(t *testing.T) {
 }
 
 func TestHandleConnection(t *testing.T) {
-	server := StartServer()
+	server := StartServer([]Handler{})
 	defer server.Shutdown()
 
 	_, err := NewClient()

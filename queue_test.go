@@ -1,10 +1,16 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
+
+func NewTestPlayer() *Player {
+	return &Player{}
+}
 
 func TestEmpty(t *testing.T) {
 	queue := NewQueue()
-	player := NewPlayer()
+	player := NewTestPlayer()
 
 	queue.Push(player)
 
@@ -21,11 +27,11 @@ func TestEmpty(t *testing.T) {
 
 func TestAppends(t *testing.T) {
 	queue := NewQueue()
-	player := NewPlayer()
+	player := NewTestPlayer()
 
 	queue.Push(player)
-	queue.Push(NewPlayer())
-	queue.Push(NewPlayer())
+	queue.Push(NewTestPlayer())
+	queue.Push(NewTestPlayer())
 
 	if queue.head.Player != player {
 		t.Error("Expected head to have player")
@@ -40,10 +46,10 @@ func TestAppends(t *testing.T) {
 
 func TestPop(t *testing.T) {
 	queue := NewQueue()
-	player := NewPlayer()
+	player := NewTestPlayer()
 
 	queue.Push(player)
-	queue.Push(NewPlayer())
+	queue.Push(NewTestPlayer())
 
 	if queue.Pop() != player {
 		t.Error("Expected pop to return player")
@@ -66,7 +72,7 @@ func TestPopEmpty(t *testing.T) {
 
 func TestPopUnique(t *testing.T) {
 	queue := NewQueue()
-	queue.Push(NewPlayer())
+	queue.Push(NewTestPlayer())
 
 	queue.Pop()
 
