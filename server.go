@@ -50,7 +50,7 @@ func (s *Server) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		message.Player = player
 
 		for _, handler := range s.handlers {
-			handler.Process(message)
+			go handler.Process(message)
 		}
 	}
 }

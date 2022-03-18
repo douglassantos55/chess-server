@@ -5,6 +5,7 @@ type ResponseType string
 
 const (
 	QueueUp MessageType = "queue_up"
+	Dequeue             = "dequeue"
 )
 
 const (

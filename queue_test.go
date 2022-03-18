@@ -5,7 +5,10 @@ import (
 )
 
 func NewTestPlayer() *Player {
-	return &Player{}
+	return &Player{
+		Incoming: make(chan Message),
+		Outgoing: make(chan Response),
+	}
 }
 
 func TestEmpty(t *testing.T) {

@@ -15,10 +15,6 @@ type Player struct {
 }
 
 func NewPlayer(socket *websocket.Conn) *Player {
-	// &Player{} returns the same pointer
-	// no matter how many times you call it.
-	// Adding a unique ID creates different
-	// instances/pointers
 	player := &Player{
 		Id: uuid.New(),
 

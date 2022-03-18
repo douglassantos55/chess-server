@@ -1,6 +1,8 @@
 package main
 
-import "sync"
+import (
+	"sync"
+)
 
 type node struct {
 	Player *Player
@@ -50,4 +52,35 @@ func (q *Queue) Pop() *Player {
 	q.head = q.head.next
 
 	return player
+}
+
+func (q *Queue) Remove(player *Player) {
+	q.mut.Lock()
+	defer q.mut.Unlock()
+
+	var prev *node
+
+	for cur := q.head; cur != nil; cur = cur.next {
+		if cur.Player == player {
+			if prev != nil {
+				prev.next = cur.next
+
+				if cur.next == nil {
+					q.tail = prev
+				}
+			} else {
+				q.head = cur.next
+			}
+			break
+		}
+
+		prev = cur
+	}
+}
+
+func (q *Queue) Tail() *Player {
+	q.mut.Lock()
+	defer q.mut.Unlock()
+
+	return q.tail.Player
 }

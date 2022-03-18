@@ -19,5 +19,7 @@ func (q *QueueManager) Process(event Message) {
 			Type: WaitForMatch,
 			Text: "Wait for match",
 		})
+	case Dequeue:
+		q.queue.Remove(event.Player)
 	}
 }

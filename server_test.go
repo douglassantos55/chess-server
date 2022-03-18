@@ -1,33 +1,21 @@
 package main
 
 import (
-	"sync"
 	"testing"
 	"time"
 )
 
 type TestHandler struct {
-	Invoked int
-	mutex   *sync.Mutex
+	Invoked chan bool
 }
 
 func (h *TestHandler) Process(event Message) {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-
-	h.Invoked++
-}
-
-func (h *TestHandler) Count() int {
-	h.mutex.Lock()
-	defer h.mutex.Unlock()
-
-	return h.Invoked
+	h.Invoked <- true
 }
 
 func TestHandlers(t *testing.T) {
 	testHandler := &TestHandler{
-		mutex: new(sync.Mutex),
+		Invoked: make(chan bool),
 	}
 
 	server := StartServer([]Handler{
@@ -39,9 +27,12 @@ func TestHandlers(t *testing.T) {
 	client, _ := NewClient()
 	client.Send(QueueUp)
 
-	time.Sleep(time.Millisecond)
-
-	if testHandler.Count() != 1 {
-		t.Error("Expected handler to execute")
+	select {
+	case invoked := <-testHandler.Invoked:
+		if !invoked {
+			t.Error("Expected handler to execute, got false instead")
+		}
+	case <-time.After(time.Second):
+		t.Error("Expected handler to execute, got timeout instead")
 	}
 }
