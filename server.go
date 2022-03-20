@@ -44,8 +44,6 @@ func (s *Server) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	player := NewPlayer(socket)
 
 	for {
-		defer player.Close()
-
 		message := <-player.Incoming
 		message.Player = player
 

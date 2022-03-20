@@ -4,8 +4,9 @@ type MessageType string
 type ResponseType string
 
 const (
-	QueueUp MessageType = "queue_up"
-	Dequeue             = "dequeue"
+	QueueUp      MessageType = "queue_up"
+	Dequeue                  = "dequeue"
+	Disconnected             = "disconnected"
 )
 
 const (

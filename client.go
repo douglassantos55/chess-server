@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -40,22 +42,31 @@ func (c *Client) Send(messageType MessageType) {
 	}
 }
 
+func (c *Client) Close() {
+	c.socket.WriteControl(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
+		time.Now().Add(time.Second),
+	)
+}
+
 func (c *Client) Write() {
 	for {
-		msg, ok := <-c.Outgoing
-
-		if ok {
-			c.socket.WriteJSON(msg)
-		}
+		msg := <-c.Outgoing
+		c.socket.WriteJSON(msg)
 	}
 }
 
 func (c *Client) Read() {
-	for {
-		defer c.socket.Close()
+	defer c.Close()
 
+	for {
 		var response Response
-		c.socket.ReadJSON(&response)
+		err := c.socket.ReadJSON(&response)
+
+		if err != nil {
+			break
+		}
 
 		c.Incoming <- response
 	}

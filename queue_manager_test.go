@@ -115,3 +115,31 @@ func TestCancel(t *testing.T) {
 		t.Error("Expected tail to point to p1")
 	}
 }
+
+func TestDisconnectRemovesFromQueue(t *testing.T) {
+	player := NewTestPlayer()
+	queueManager := NewTestQueueManager()
+
+	ready := queueManager.Process(Message{
+		Type:   QueueUp,
+		Player: player,
+	})
+
+	select {
+	case <-player.Outgoing:
+		<-ready
+	case <-time.After(time.Second):
+		t.Error("Should not timeout")
+	}
+
+	<-queueManager.Process(Message{
+		Type:   Disconnected,
+		Player: player,
+	})
+
+	got := queueManager.Manager.queue.Pop()
+
+	if got != nil {
+		t.Errorf("Expected empty queue, got %v", got)
+	}
+}

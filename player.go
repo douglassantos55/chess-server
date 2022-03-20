@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
@@ -31,32 +33,43 @@ func NewPlayer(socket *websocket.Conn) *Player {
 }
 
 func (p *Player) Close() {
-	p.socket.Close()
+	p.socket.WriteControl(
+		websocket.CloseMessage,
+		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
+		time.Now().Add(time.Second),
+	)
 }
 
 func (p *Player) Send(response Response) {
 	p.Outgoing <- response
 }
 
+// Read incoming client messages
 func (p *Player) Read() {
-	for {
-		defer p.Close()
+	defer p.Close()
 
+	for {
 		var msg Message
 		err := p.socket.ReadJSON(&msg)
 
-		if err == nil {
-			p.Incoming <- msg
+		if err != nil {
+			p.Incoming <- Message{
+				Type: Disconnected,
+			}
+			break
 		}
+		p.Incoming <- msg
 	}
 }
 
+// Write responses to client
 func (p *Player) Write() {
 	for {
-		msg, ok := <-p.Outgoing
+		msg := <-p.Outgoing
+		err := p.socket.WriteJSON(msg)
 
-		if ok {
-			p.socket.WriteJSON(msg)
+		if err != nil {
+			p.Close()
 		}
 	}
 }
