@@ -38,6 +38,12 @@ func (p *Player) Close() {
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
 		time.Now().Add(time.Second),
 	)
+
+	close(p.Incoming)
+
+    // be careful not to send to player on disconnect handlers
+    // because it's going to panic since we're closing Outgoing
+	close(p.Outgoing)
 }
 
 func (p *Player) Send(response Response) {
@@ -58,6 +64,7 @@ func (p *Player) Read() {
 			}
 			break
 		}
+
 		p.Incoming <- msg
 	}
 }
@@ -65,7 +72,12 @@ func (p *Player) Read() {
 // Write responses to client
 func (p *Player) Write() {
 	for {
-		msg := <-p.Outgoing
+		msg, ok := <-p.Outgoing
+
+		if !ok { // disconnected
+			break
+		}
+
 		err := p.socket.WriteJSON(msg)
 
 		if err != nil {

@@ -48,18 +48,24 @@ func (c *Client) Close() {
 		websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
 		time.Now().Add(time.Second),
 	)
+
+	close(c.Incoming)
+	close(c.Outgoing)
 }
 
 func (c *Client) Write() {
 	for {
-		msg := <-c.Outgoing
+		msg, ok := <-c.Outgoing
+
+		if !ok {
+			break
+		}
+
 		c.socket.WriteJSON(msg)
 	}
 }
 
 func (c *Client) Read() {
-	defer c.Close()
-
 	for {
 		var response Response
 		err := c.socket.ReadJSON(&response)

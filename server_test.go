@@ -68,11 +68,15 @@ func TestClientDisconnect(t *testing.T) {
 		t.Error("Expected handler to execute, got timeout instead")
 	}
 
-	client.Send(QueueUp)
+	assertPanic(t, func() { client.Send(QueueUp) })
+}
 
-	select {
-	case <-time.After(time.Second):
-	case res := <-client.Incoming:
-		t.Errorf("Expected no response, got %v", res)
-	}
+func assertPanic(t *testing.T, f func()) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected send on closed client to panic")
+		}
+	}()
+
+	f()
 }

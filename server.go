@@ -44,8 +44,12 @@ func (s *Server) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	player := NewPlayer(socket)
 
 	for {
-		message := <-player.Incoming
+		message, ok := <-player.Incoming
 		message.Player = player
+
+		if !ok { // disconnected
+			break
+		}
 
 		for _, handler := range s.handlers {
 			go handler.Process(message)
