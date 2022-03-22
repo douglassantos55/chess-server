@@ -10,9 +10,10 @@ type node struct {
 }
 
 type Queue struct {
-	head *node
-	tail *node
-	mut  *sync.Mutex
+	length int
+	head   *node
+	tail   *node
+	mut    *sync.Mutex
 }
 
 func NewQueue() *Queue {
@@ -34,6 +35,8 @@ func (q *Queue) Push(player *Player) {
 		q.tail.next = node
 		q.tail = node
 	}
+
+	q.length++
 }
 
 func (q *Queue) Pop() *Player {
@@ -50,6 +53,8 @@ func (q *Queue) Pop() *Player {
 
 	player := q.head.Player
 	q.head = q.head.next
+
+	q.length--
 
 	return player
 }
@@ -71,6 +76,8 @@ func (q *Queue) Remove(player *Player) {
 			} else {
 				q.head = cur.next
 			}
+
+			q.length--
 			break
 		}
 
@@ -78,9 +85,9 @@ func (q *Queue) Remove(player *Player) {
 	}
 }
 
-func (q *Queue) Tail() *Player {
+func (q *Queue) Length() int {
 	q.mut.Lock()
 	defer q.mut.Unlock()
 
-	return q.tail.Player
+	return q.length
 }

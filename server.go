@@ -7,6 +7,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var Dispatcher chan Message
+
 type Handler interface {
 	Process(event Message)
 }
@@ -37,22 +39,40 @@ func (s *Server) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{}
 	socket, err := upgrader.Upgrade(w, r, nil)
 
+	Dispatcher := make(chan Message)
+
 	if err != nil {
 		return
 	}
 
 	player := NewPlayer(socket)
 
-	for {
-		message, ok := <-player.Incoming
-		message.Player = player
+	go func() {
+		for {
+			message, ok := <-player.Incoming
+			message.Player = player
 
-		if !ok { // disconnected
-			break
-		}
+			if !ok { // disconnected
+				break
+			}
 
-		for _, handler := range s.handlers {
-			go handler.Process(message)
+			Dispatcher <- message
 		}
-	}
+	}()
+
+	go func() {
+		defer close(Dispatcher)
+
+		for {
+			event, ok := <-Dispatcher
+
+			if !ok {
+				break
+			}
+
+			for _, handler := range s.handlers {
+				go handler.Process(event)
+			}
+		}
+	}()
 }

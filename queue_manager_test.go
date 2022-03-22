@@ -79,25 +79,12 @@ func TestAddsToQueue(t *testing.T) {
 
 func TestCancel(t *testing.T) {
 	p1 := NewTestPlayer()
-	p2 := NewTestPlayer()
-
 	queueManager := NewTestQueueManager()
 
 	p1Ready := queueManager.Process(Message{
 		Type:   QueueUp,
 		Player: p1,
 	})
-	p2Ready := queueManager.Process(Message{
-		Type:   QueueUp,
-		Player: p2,
-	})
-
-	select {
-	case <-p2.Outgoing:
-		<-p2Ready
-	case <-time.After(time.Second):
-		t.Error("Should not timeout")
-	}
 
 	select {
 	case <-p1.Outgoing:
@@ -108,11 +95,13 @@ func TestCancel(t *testing.T) {
 
 	<-queueManager.Process(Message{
 		Type:   Dequeue,
-		Player: p2,
+		Player: p1,
 	})
 
-	if queueManager.Manager.queue.tail.Player != p1 {
-		t.Error("Expected tail to point to p1")
+	queue := queueManager.Manager.queue
+
+	if queue.Length() != 0 {
+		t.Errorf("Expected empty queue, got %v", queue.Length())
 	}
 }
 
@@ -142,4 +131,58 @@ func TestDisconnectRemovesFromQueue(t *testing.T) {
 	if got != nil {
 		t.Errorf("Expected empty queue, got %v", got)
 	}
+}
+
+func TestDispatchesMatchFound(t *testing.T) {
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	queueManager := NewTestQueueManager()
+
+	queueManager.Process(Message{
+		Type:   QueueUp,
+		Player: p1,
+	})
+
+	select {
+	case <-p1.Outgoing:
+	case <-time.After(200 * time.Millisecond):
+		t.Error("Timeout before server response")
+	}
+
+	queueManager.Process(Message{
+		Type:   QueueUp,
+		Player: p2,
+	})
+
+	select {
+	case res := <-p2.Outgoing:
+		if res.Type != WaitForMatch {
+			t.Errorf("Expected wait for match, got %+v", res)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Error("Timeout before server response")
+	}
+
+	select {
+	case res := <-p1.Outgoing:
+		if res.Type != MatchFound {
+			t.Errorf("Expected match found, got %+v", res)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Error("Timeout before server response")
+	}
+
+	select {
+	case res := <-p2.Outgoing:
+		if res.Type != MatchFound {
+			t.Errorf("Expected match found, got %+v", res)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Error("Timeout before server response")
+	}
+
+    if queueManager.Manager.queue.Length() != 0 {
+        t.Errorf("Expected empty queue, got %v", queueManager.Manager.queue.Length())
+    }
 }

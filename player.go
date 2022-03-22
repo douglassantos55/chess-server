@@ -41,8 +41,8 @@ func (p *Player) Close() {
 
 	close(p.Incoming)
 
-    // be careful not to send to player on disconnect handlers
-    // because it's going to panic since we're closing Outgoing
+	// be careful not to send to player on disconnect handlers
+	// because it's going to panic since we're closing Outgoing
 	close(p.Outgoing)
 }
 

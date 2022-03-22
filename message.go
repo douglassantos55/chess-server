@@ -11,6 +11,7 @@ const (
 
 const (
 	WaitForMatch ResponseType = "wait_for_match"
+	MatchFound                = "match_found"
 )
 
 type Message struct {
