@@ -134,6 +134,8 @@ func TestDisconnectRemovesFromQueue(t *testing.T) {
 }
 
 func TestDispatchesMatchFound(t *testing.T) {
+	Dispatcher = make(chan Message)
+
 	p1 := NewTestPlayer()
 	p2 := NewTestPlayer()
 
@@ -165,24 +167,21 @@ func TestDispatchesMatchFound(t *testing.T) {
 	}
 
 	select {
-	case res := <-p1.Outgoing:
+	case res := <-Dispatcher:
 		if res.Type != MatchFound {
 			t.Errorf("Expected match found, got %+v", res)
 		}
-	case <-time.After(200 * time.Millisecond):
-		t.Error("Timeout before server response")
-	}
 
-	select {
-	case res := <-p2.Outgoing:
-		if res.Type != MatchFound {
-			t.Errorf("Expected match found, got %+v", res)
+		players := res.Payload.([]*Player)
+
+		if len(players) != 2 {
+			t.Errorf("Expected 2 players, got %v", len(players))
 		}
-	case <-time.After(200 * time.Millisecond):
+	case <-time.After(time.Second):
 		t.Error("Timeout before server response")
 	}
 
-    if queueManager.Manager.queue.Length() != 0 {
-        t.Errorf("Expected empty queue, got %v", queueManager.Manager.queue.Length())
-    }
+	if queueManager.Manager.queue.Length() != 0 {
+		t.Errorf("Expected empty queue, got %v", queueManager.Manager.queue.Length())
+	}
 }

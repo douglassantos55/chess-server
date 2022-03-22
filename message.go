@@ -12,15 +12,18 @@ const (
 const (
 	WaitForMatch ResponseType = "wait_for_match"
 	MatchFound                = "match_found"
+	ConfirmMatch              = "confirm_match"
 )
 
 type Message struct {
-	Type   MessageType
-	Text   string
-	Player *Player
+	Type    MessageType
+	Text    string
+	Player  *Player
+	Payload interface{}
 }
 
 type Response struct {
-	Type ResponseType
-	Text string
+	Type    ResponseType
+	Text    string
+	Payload interface{}
 }

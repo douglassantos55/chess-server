@@ -23,16 +23,15 @@ func (q *QueueManager) Process(event Message) {
 		})
 
 		if q.queue.Length() == MAX_PLAYERS {
-			for i := 0; i < MAX_PLAYERS; i++ {
-				player := q.queue.Pop()
+			players := []*Player{}
 
-				player.Send(Response{
-					Type: MatchFound,
-				})
+			for i := 0; i < MAX_PLAYERS; i++ {
+				players = append(players, q.queue.Pop())
 			}
 
 			Dispatcher <- Message{
-				Type: MatchFound,
+				Type:    MatchFound,
+				Payload: players,
 			}
 		}
 	case Dequeue, Disconnected:
