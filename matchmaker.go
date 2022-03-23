@@ -48,7 +48,10 @@ func (m *MatchMaker) CreateMatch(players []*Player) {
 	go func() {
 		select {
 		case players := <-match.Ready:
-			print("start game", players)
+			Dispatcher <- Message{
+				Type:    GameStart,
+				Payload: players,
+			}
 		case requeue := <-match.Cancel:
 			m.RemoveMatch(match.Id)
 

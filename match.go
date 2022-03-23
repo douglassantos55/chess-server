@@ -53,6 +53,7 @@ func (m *Match) AskConfirmation() {
 func (m *Match) WaitConfirmation(timeout time.Duration) {
 	confirmed := []*Player{}
 
+outer:
 	for {
 		select {
 		case player := <-m.Confirmed:
@@ -60,10 +61,11 @@ func (m *Match) WaitConfirmation(timeout time.Duration) {
 
 			if len(confirmed) == MAX_PLAYERS {
 				m.Ready <- confirmed
-				break
+				break outer
 			}
 		case <-time.After(timeout):
 			m.Cancel <- confirmed
+			break outer
 		}
 	}
 }

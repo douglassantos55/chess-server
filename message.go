@@ -8,6 +8,7 @@ const (
 	Dequeue                    = "dequeue"
 	Disconnected               = "disconnected"
 	MatchConfirmed             = "match_confirmed"
+	GameStart                  = "game_start"
 )
 
 const (

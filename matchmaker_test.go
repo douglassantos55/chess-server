@@ -117,6 +117,10 @@ func TestConcurrency(t *testing.T) {
 }
 
 func TestRequeuesConfirmedAfterTimeout(t *testing.T) {
+	defer func() {
+		Dispatcher = nil
+	}()
+
 	Dispatcher = make(chan Message)
 	matchmaker := NewMatchMaker(200 * time.Millisecond)
 
@@ -178,5 +182,63 @@ func TestCancelsMatchIfNoConfirmation(t *testing.T) {
 
 	if matchmaker.HasMatches() {
 		t.Error("Expected match to be canceled")
+	}
+}
+
+func TestDispatchesGameStart(t *testing.T) {
+	defer func() {
+		Dispatcher = nil
+	}()
+
+	Dispatcher = make(chan Message)
+	matchmaker := NewMatchMaker(time.Second)
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go matchmaker.Process(Message{
+		Type:    MatchFound,
+		Payload: []*Player{p1, p2},
+	})
+
+	response := <-p1.Outgoing
+	<-p2.Outgoing
+
+	matchId := response.Payload.(uuid.UUID)
+
+	go matchmaker.Process(Message{
+		Player:  p1,
+		Payload: matchId,
+		Type:    MatchConfirmed,
+	})
+	go matchmaker.Process(Message{
+		Player:  p2,
+		Payload: matchId,
+		Type:    MatchConfirmed,
+	})
+
+	waitP1 := <-p1.Outgoing
+	if waitP1.Type != WaitOtherPlayers {
+		t.Errorf("Expected wait other players, got %v", waitP1.Type)
+	}
+
+	waitP2 := <-p2.Outgoing
+	if waitP2.Type != WaitOtherPlayers {
+		t.Errorf("Expected wait other players, got %v", waitP2.Type)
+	}
+
+	select {
+	case res := <-Dispatcher:
+		if res.Type != GameStart {
+			t.Errorf("Expected game start, got %v", res.Type)
+		}
+
+		players := res.Payload.([]*Player)
+
+		if len(players) != MAX_PLAYERS {
+			t.Errorf("Expected 2 players, got %v", len(players))
+		}
+	case <-time.After(time.Second):
+		t.Error("Expected response, got timeout")
 	}
 }
