@@ -2,39 +2,72 @@ package main
 
 import (
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 type MatchMaker struct {
 	mutex   *sync.Mutex
-	matches map[uuid.UUID][]*Player
+	timeout time.Duration
+	matches map[uuid.UUID]*Match
 }
 
-func NewMatchMaker() *MatchMaker {
+func NewMatchMaker(timeout time.Duration) *MatchMaker {
 	return &MatchMaker{
+		timeout: timeout,
 		mutex:   new(sync.Mutex),
-		matches: make(map[uuid.UUID][]*Player),
+		matches: make(map[uuid.UUID]*Match),
 	}
 }
 
 func (m *MatchMaker) HasMatches() bool {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
 	return len(m.matches) > 0
+}
+
+func (m *MatchMaker) RemoveMatch(matchId uuid.UUID) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	delete(m.matches, matchId)
 }
 
 func (m *MatchMaker) CreateMatch(players []*Player) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	matchId := uuid.New()
-	m.matches[matchId] = players
+	match := NewMatch(players)
+	m.matches[match.Id] = match
 
-	for _, player := range players {
-		player.Send(Response{
-			Type:    ConfirmMatch,
-			Payload: matchId,
-		})
-	}
+	go match.AskConfirmation()
+	go match.WaitConfirmation(m.timeout)
+
+	go func() {
+		select {
+		case players := <-match.Ready:
+			print("start game", players)
+		case requeue := <-match.Cancel:
+			m.RemoveMatch(match.Id)
+
+			for _, player := range requeue {
+				Dispatcher <- Message{
+					Type:   QueueUp,
+					Player: player,
+				}
+			}
+		}
+	}()
+}
+
+func (m *MatchMaker) ConfirmMatch(matchId uuid.UUID, player *Player) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	match := m.matches[matchId]
+	match.Confirm(player)
 }
 
 func (m *MatchMaker) Process(event Message) {
@@ -42,5 +75,9 @@ func (m *MatchMaker) Process(event Message) {
 	case MatchFound:
 		players := event.Payload.([]*Player)
 		m.CreateMatch(players)
+
+	case MatchConfirmed:
+		matchId := event.Payload.(uuid.UUID)
+		m.ConfirmMatch(matchId, event.Player)
 	}
 }

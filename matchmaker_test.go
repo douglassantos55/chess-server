@@ -8,7 +8,7 @@ import (
 )
 
 func TestIgnoresQueueUp(t *testing.T) {
-	matchmaker := NewMatchMaker()
+	matchmaker := NewMatchMaker(time.Second)
 
 	p1 := NewTestPlayer()
 
@@ -25,7 +25,7 @@ func TestIgnoresQueueUp(t *testing.T) {
 }
 
 func TestCreatesMatch(t *testing.T) {
-	matchmaker := NewMatchMaker()
+	matchmaker := NewMatchMaker(time.Second)
 
 	p1 := NewTestPlayer()
 	p2 := NewTestPlayer()
@@ -51,7 +51,7 @@ func TestCreatesMatch(t *testing.T) {
 }
 
 func TestAsksForConfirmation(t *testing.T) {
-	matchmaker := NewMatchMaker()
+	matchmaker := NewMatchMaker(time.Second)
 
 	p1 := NewTestPlayer()
 	p2 := NewTestPlayer()
@@ -81,7 +81,7 @@ func TestAsksForConfirmation(t *testing.T) {
 }
 
 func TestConcurrency(t *testing.T) {
-	matchmaker := NewMatchMaker()
+	matchmaker := NewMatchMaker(time.Second)
 
 	p1 := NewTestPlayer()
 	p2 := NewTestPlayer()
@@ -113,5 +113,70 @@ func TestConcurrency(t *testing.T) {
 		case <-time.After(time.Second):
 			t.Error("Expected responses from server, got timeout instead")
 		}
+	}
+}
+
+func TestRequeuesConfirmedAfterTimeout(t *testing.T) {
+	Dispatcher = make(chan Message)
+	matchmaker := NewMatchMaker(200 * time.Millisecond)
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go matchmaker.Process(Message{
+		Type:    MatchFound,
+		Payload: []*Player{p1, p2},
+	})
+
+	var response Response
+
+	select {
+	case res := <-p1.Outgoing:
+		response = res
+	case res := <-p2.Outgoing:
+		response = res
+	case <-time.After(time.Second):
+		t.Error("Expected response, got timeout")
+	}
+
+	matchId := response.Payload.(uuid.UUID)
+
+	go matchmaker.Process(Message{
+		Player:  p1,
+		Payload: matchId,
+		Type:    MatchConfirmed,
+	})
+
+	res := <-p1.Outgoing
+	if res.Type != WaitOtherPlayers {
+		t.Errorf("Expected wait other players, got %v", res.Type)
+	}
+
+	time.Sleep(200 * time.Millisecond)
+
+	select {
+	case queueUp := <-Dispatcher:
+		if queueUp.Type != QueueUp {
+			t.Error("Expected confirmed to be requeued", queueUp.Type)
+		}
+	case <-time.After(time.Second):
+		t.Error("Expected response, got timeout")
+	}
+}
+
+func TestCancelsMatchIfNoConfirmation(t *testing.T) {
+	matchmaker := NewMatchMaker(200 * time.Millisecond)
+	p1 := NewTestPlayer()
+
+	go matchmaker.Process(Message{
+		Type:    MatchFound,
+		Payload: []*Player{p1},
+	})
+
+	<-p1.Outgoing
+	time.Sleep(300 * time.Millisecond)
+
+	if matchmaker.HasMatches() {
+		t.Error("Expected match to be canceled")
 	}
 }
