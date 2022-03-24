@@ -52,10 +52,14 @@ func (m *MatchMaker) CreateMatch(players []*Player) {
 				Type:    GameStart,
 				Payload: players,
 			}
-		case requeue := <-match.Cancel:
+		case requeue := <-match.Canceled:
 			m.RemoveMatch(match.Id)
 
 			for _, player := range requeue {
+				player.Send(Response{
+					Type: MatchCanceled,
+				})
+
 				Dispatcher <- Message{
 					Type:   QueueUp,
 					Player: player,
@@ -63,6 +67,14 @@ func (m *MatchMaker) CreateMatch(players []*Player) {
 			}
 		}
 	}()
+}
+
+func (m *MatchMaker) CancelMatch(matchId uuid.UUID) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	match := m.matches[matchId]
+	match.Cancel()
 }
 
 func (m *MatchMaker) ConfirmMatch(matchId uuid.UUID, player *Player) {
@@ -82,5 +94,9 @@ func (m *MatchMaker) Process(event Message) {
 	case MatchConfirmed:
 		matchId := event.Payload.(uuid.UUID)
 		m.ConfirmMatch(matchId, event.Player)
+
+	case MatchDeclined:
+		matchId := event.Payload.(uuid.UUID)
+		m.CancelMatch(matchId)
 	}
 }

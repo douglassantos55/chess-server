@@ -5,17 +5,19 @@ type ResponseType string
 
 const (
 	QueueUp        MessageType = "queue_up"
-	Dequeue                    = "dequeue"
-	Disconnected               = "disconnected"
-	MatchConfirmed             = "match_confirmed"
-	GameStart                  = "game_start"
+	Dequeue        MessageType = "dequeue"
+	Disconnected   MessageType = "disconnected"
+	MatchConfirmed MessageType = "match_confirmed"
+	MatchDeclined  MessageType = "match_declined"
+	GameStart      MessageType = "game_start"
+	MatchFound     MessageType = "match_found"
 )
 
 const (
 	WaitForMatch     ResponseType = "wait_for_match"
-	MatchFound                    = "match_found"
-	ConfirmMatch                  = "confirm_match"
-	WaitOtherPlayers              = "wait_other_players"
+	ConfirmMatch     ResponseType = "confirm_match"
+	WaitOtherPlayers ResponseType = "wait_other_players"
+	MatchCanceled    ResponseType = "match_canceled"
 )
 
 type Message struct {

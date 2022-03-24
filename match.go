@@ -13,8 +13,8 @@ type Match struct {
 	Id      uuid.UUID
 	Players []*Player
 
-	Ready  chan []*Player
-	Cancel chan []*Player
+	Ready    chan []*Player
+	Canceled chan []*Player
 
 	Confirmed chan *Player
 }
@@ -26,14 +26,24 @@ func NewMatch(players []*Player) *Match {
 		Id:      uuid.New(),
 		Players: players,
 
-		Ready:  make(chan []*Player),
-		Cancel: make(chan []*Player),
+		Ready:    make(chan []*Player),
+		Canceled: make(chan []*Player),
 
 		Confirmed: make(chan *Player, MAX_PLAYERS),
 	}
 }
 
+func (m *Match) Cancel() {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	close(m.Confirmed)
+}
+
 func (m *Match) Confirm(player *Player) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
 	m.Confirmed <- player
 
 	player.Send(Response{
@@ -51,21 +61,20 @@ func (m *Match) AskConfirmation() {
 }
 
 func (m *Match) WaitConfirmation(timeout time.Duration) {
+	go func() {
+		time.Sleep(timeout)
+		m.Cancel()
+	}()
+
 	confirmed := []*Player{}
 
-outer:
-	for {
-		select {
-		case player := <-m.Confirmed:
-			confirmed = append(confirmed, player)
+	for player := range m.Confirmed {
+		confirmed = append(confirmed, player)
 
-			if len(confirmed) == MAX_PLAYERS {
-				m.Ready <- confirmed
-				break outer
-			}
-		case <-time.After(timeout):
-			m.Cancel <- confirmed
-			break outer
+		if len(confirmed) == MAX_PLAYERS {
+			m.Ready <- confirmed
 		}
 	}
+
+	m.Canceled <- confirmed
 }

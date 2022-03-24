@@ -158,6 +158,8 @@ func TestRequeuesConfirmedAfterTimeout(t *testing.T) {
 
 	time.Sleep(200 * time.Millisecond)
 
+	<-p1.Outgoing
+
 	select {
 	case queueUp := <-Dispatcher:
 		if queueUp.Type != QueueUp {
@@ -240,5 +242,62 @@ func TestDispatchesGameStart(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Error("Expected response, got timeout")
+	}
+}
+
+func TestRefuseMatch(t *testing.T) {
+	defer func() {
+		Dispatcher = nil
+	}()
+
+	Dispatcher = make(chan Message)
+	matchmaker := NewMatchMaker(time.Second)
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go matchmaker.Process(Message{
+		Type:    MatchFound,
+		Payload: []*Player{p1, p2},
+	})
+
+	response := <-p1.Outgoing
+	<-p2.Outgoing
+
+	matchId := response.Payload.(uuid.UUID)
+
+	go matchmaker.Process(Message{
+		Player:  p1,
+		Payload: matchId,
+		Type:    MatchConfirmed,
+	})
+
+	waitP1 := <-p1.Outgoing
+	if waitP1.Type != WaitOtherPlayers {
+		t.Errorf("Expected wait other players, got %v", waitP1.Type)
+	}
+
+	go matchmaker.Process(Message{
+		Player:  p2,
+		Payload: matchId,
+		Type:    MatchDeclined,
+	})
+
+	notification := <-p1.Outgoing
+	if notification.Type != MatchCanceled {
+		t.Errorf("Expected match canceled response, got %v", notification.Type)
+	}
+
+	select {
+	case queueUp := <-Dispatcher:
+		if queueUp.Type != QueueUp {
+			t.Error("Expected confirmed to be requeued", queueUp.Type)
+		}
+	case <-time.After(time.Second):
+		t.Error("Expected response, got timeout")
+	}
+
+	if matchmaker.HasMatches() {
+		t.Error("Expected match to be canceled")
 	}
 }
