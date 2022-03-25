@@ -209,16 +209,17 @@ func TestDispatchesGameStart(t *testing.T) {
 		Payload: matchId,
 		Type:    MatchConfirmed,
 	})
-	go matchmaker.Process(Message{
-		Player:  p2,
-		Payload: matchId,
-		Type:    MatchConfirmed,
-	})
 
 	waitP1 := <-p1.Outgoing
 	if waitP1.Type != WaitOtherPlayers {
 		t.Errorf("Expected wait other players, got %v", waitP1.Type)
 	}
+
+	go matchmaker.Process(Message{
+		Player:  p2,
+		Payload: matchId,
+		Type:    MatchConfirmed,
+	})
 
 	waitP2 := <-p2.Outgoing
 	if waitP2.Type != WaitOtherPlayers {
