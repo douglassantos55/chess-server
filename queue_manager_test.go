@@ -134,8 +134,6 @@ func TestDisconnectRemovesFromQueue(t *testing.T) {
 }
 
 func TestDispatchesMatchFound(t *testing.T) {
-	Dispatcher = make(chan Message)
-
 	p1 := NewTestPlayer()
 	p2 := NewTestPlayer()
 

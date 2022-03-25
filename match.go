@@ -13,6 +13,7 @@ type Match struct {
 	Id      uuid.UUID
 	Players []*Player
 
+	Done     chan bool
 	Ready    chan []*Player
 	Canceled chan []*Player
 
@@ -26,6 +27,7 @@ func NewMatch(players []*Player) *Match {
 		Id:      uuid.New(),
 		Players: players,
 
+		Done:     make(chan bool),
 		Ready:    make(chan []*Player),
 		Canceled: make(chan []*Player),
 
@@ -62,8 +64,11 @@ func (m *Match) AskConfirmation() {
 
 func (m *Match) WaitConfirmation(timeout time.Duration) {
 	go func() {
-		time.Sleep(timeout)
-		m.Cancel()
+		select {
+		case <-m.Done:
+		case <-time.After(timeout):
+			m.Cancel()
+		}
 	}()
 
 	confirmed := []*Player{}
@@ -77,4 +82,5 @@ func (m *Match) WaitConfirmation(timeout time.Duration) {
 	}
 
 	m.Canceled <- confirmed
+	m.Done <- true
 }

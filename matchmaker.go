@@ -48,6 +48,8 @@ func (m *MatchMaker) CreateMatch(players []*Player) {
 	go func() {
 		select {
 		case players := <-match.Ready:
+			m.RemoveMatch(match.Id)
+
 			Dispatcher <- Message{
 				Type:    GameStart,
 				Payload: players,
@@ -85,6 +87,19 @@ func (m *MatchMaker) ConfirmMatch(matchId uuid.UUID, player *Player) {
 	match.Confirm(player)
 }
 
+func (m *MatchMaker) CancelPlayerMatches(player *Player) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	for _, match := range m.matches {
+		for _, p := range match.Players {
+			if p == player {
+				match.Cancel()
+			}
+		}
+	}
+}
+
 func (m *MatchMaker) Process(event Message) {
 	switch event.Type {
 	case MatchFound:
@@ -98,5 +113,8 @@ func (m *MatchMaker) Process(event Message) {
 	case MatchDeclined:
 		matchId := event.Payload.(uuid.UUID)
 		m.CancelMatch(matchId)
+
+	case Disconnected:
+		m.CancelPlayerMatches(event.Player)
 	}
 }
