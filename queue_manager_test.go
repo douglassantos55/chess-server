@@ -5,32 +5,11 @@ import (
 	"time"
 )
 
-type TestQueueManager struct {
-	Manager *QueueManager
-}
-
-func NewTestQueueManager() *TestQueueManager {
-	return &TestQueueManager{
-		Manager: NewQueueManager(),
-	}
-}
-
-func (q *TestQueueManager) Process(event Message) chan bool {
-	channel := make(chan bool)
-
-	go func() {
-		q.Manager.Process(event)
-		channel <- true
-	}()
-
-	return channel
-}
-
 func TestReturnsResponse(t *testing.T) {
 	player := NewTestPlayer()
-	queueManager := NewTestQueueManager()
+	queueManager := NewQueueManager()
 
-	queueManager.Process(Message{
+	go queueManager.Process(Message{
 		Type:   QueueUp,
 		Player: player,
 	})
@@ -47,9 +26,9 @@ func TestReturnsResponse(t *testing.T) {
 
 func TestInvalidType(t *testing.T) {
 	player := NewTestPlayer()
-	queueManager := NewTestQueueManager()
+	queueManager := NewQueueManager()
 
-	queueManager.Process(Message{
+	go queueManager.Process(Message{
 		Type:   "something",
 		Player: player,
 	})
@@ -63,42 +42,39 @@ func TestInvalidType(t *testing.T) {
 
 func TestAddsToQueue(t *testing.T) {
 	player := NewTestPlayer()
-	queueManager := NewTestQueueManager()
+	queueManager := NewQueueManager()
 
-	queueManager.Process(Message{
+	go queueManager.Process(Message{
 		Type:   QueueUp,
 		Player: player,
 	})
 
 	<-player.Outgoing
 
-	if queueManager.Manager.queue.Pop() != player {
+	if queueManager.queue.Pop() != player {
 		t.Error("Expected head to be player")
 	}
 }
 
 func TestCancel(t *testing.T) {
 	p1 := NewTestPlayer()
-	queueManager := NewTestQueueManager()
+	queueManager := NewQueueManager()
 
-	p1Ready := queueManager.Process(Message{
+	go queueManager.Process(Message{
 		Type:   QueueUp,
 		Player: p1,
 	})
 
-	select {
-	case <-p1.Outgoing:
-		<-p1Ready
-	case <-time.After(time.Second):
-		t.Error("Should not timeout")
-	}
+	<-p1.Outgoing
 
-	<-queueManager.Process(Message{
-		Type:   Dequeue,
-		Player: p1,
+	<-wait(func() {
+		queueManager.Process(Message{
+			Type:   Dequeue,
+			Player: p1,
+		})
 	})
 
-	queue := queueManager.Manager.queue
+	queue := queueManager.queue
 
 	if queue.Length() != 0 {
 		t.Errorf("Expected empty queue, got %v", queue.Length())
@@ -107,26 +83,23 @@ func TestCancel(t *testing.T) {
 
 func TestDisconnectRemovesFromQueue(t *testing.T) {
 	player := NewTestPlayer()
-	queueManager := NewTestQueueManager()
+	queueManager := NewQueueManager()
 
-	ready := queueManager.Process(Message{
+	go queueManager.Process(Message{
 		Type:   QueueUp,
 		Player: player,
 	})
 
-	select {
-	case <-player.Outgoing:
-		<-ready
-	case <-time.After(time.Second):
-		t.Error("Should not timeout")
-	}
+	<-player.Outgoing
 
-	<-queueManager.Process(Message{
-		Type:   Disconnected,
-		Player: player,
+	<-wait(func() {
+		queueManager.Process(Message{
+			Type:   Disconnected,
+			Player: player,
+		})
 	})
 
-	got := queueManager.Manager.queue.Pop()
+	got := queueManager.queue.Pop()
 
 	if got != nil {
 		t.Errorf("Expected empty queue, got %v", got)
@@ -137,20 +110,14 @@ func TestDispatchesMatchFound(t *testing.T) {
 	p1 := NewTestPlayer()
 	p2 := NewTestPlayer()
 
-	queueManager := NewTestQueueManager()
+	queueManager := NewQueueManager()
 
-	queueManager.Process(Message{
+	go queueManager.Process(Message{
 		Type:   QueueUp,
 		Player: p1,
 	})
 
-	select {
-	case <-p1.Outgoing:
-	case <-time.After(200 * time.Millisecond):
-		t.Error("Timeout before server response")
-	}
-
-	queueManager.Process(Message{
+	go queueManager.Process(Message{
 		Type:   QueueUp,
 		Player: p2,
 	})
@@ -179,7 +146,7 @@ func TestDispatchesMatchFound(t *testing.T) {
 		t.Error("Timeout before server response")
 	}
 
-	if queueManager.Manager.queue.Length() != 0 {
-		t.Errorf("Expected empty queue, got %v", queueManager.Manager.queue.Length())
+	if queueManager.queue.Length() != 0 {
+		t.Errorf("Expected empty queue, got %v", queueManager.queue.Length())
 	}
 }

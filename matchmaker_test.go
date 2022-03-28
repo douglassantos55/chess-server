@@ -1,17 +1,11 @@
 package main
 
 import (
-	"os"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 )
-
-func TestMain(m *testing.M) {
-	Dispatcher = make(chan Message)
-	os.Exit(m.Run())
-}
 
 func TestIgnoresQueueUp(t *testing.T) {
 	matchmaker := NewMatchMaker(time.Second)
@@ -228,7 +222,7 @@ func TestDispatchesGameStart(t *testing.T) {
 
 	select {
 	case res := <-Dispatcher:
-		if res.Type != GameStart {
+		if res.Type != CreateGame {
 			t.Errorf("Expected game start, got %v", res.Type)
 		}
 

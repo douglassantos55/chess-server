@@ -51,7 +51,7 @@ func (m *MatchMaker) CreateMatch(players []*Player) {
 			m.RemoveMatch(match.Id)
 
 			Dispatcher <- Message{
-				Type:    GameStart,
+				Type:    CreateGame,
 				Payload: players,
 			}
 		case requeue := <-match.Canceled:

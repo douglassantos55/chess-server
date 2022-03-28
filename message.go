@@ -1,5 +1,7 @@
 package main
 
+import "github.com/google/uuid"
+
 type MessageType string
 type ResponseType string
 
@@ -9,7 +11,7 @@ const (
 	Disconnected   MessageType = "disconnected"
 	MatchConfirmed MessageType = "match_confirmed"
 	MatchDeclined  MessageType = "match_declined"
-	GameStart      MessageType = "game_start"
+	CreateGame     MessageType = "create_game"
 	MatchFound     MessageType = "match_found"
 )
 
@@ -18,6 +20,7 @@ const (
 	ConfirmMatch     ResponseType = "confirm_match"
 	WaitOtherPlayers ResponseType = "wait_other_players"
 	MatchCanceled    ResponseType = "match_canceled"
+	StartGame        ResponseType = "start_game"
 )
 
 type Message struct {
@@ -31,4 +34,9 @@ type Response struct {
 	Type    ResponseType
 	Text    string
 	Payload interface{}
+}
+
+type GameParams struct {
+	GameId uuid.UUID
+	Color  Color
 }

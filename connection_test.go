@@ -1,9 +1,15 @@
 package main
 
 import (
+	"os"
 	"testing"
 	"time"
 )
+
+func TestMain(m *testing.M) {
+	Dispatcher = make(chan Message)
+	os.Exit(m.Run())
+}
 
 func StartServer(handlers []Handler) *Server {
 	server := NewServer(handlers)
