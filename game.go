@@ -24,6 +24,8 @@ func (p *GamePlayer) Send(response Response) {
 }
 
 type Game struct {
+	board *Board
+
 	Id    uuid.UUID
 	Black *GamePlayer
 	White *GamePlayer
@@ -31,7 +33,8 @@ type Game struct {
 
 func NewGame(players []*Player) *Game {
 	return &Game{
-		Id: uuid.New(),
+		Id:    uuid.New(),
+		board: NewBoard(),
 		White: &GamePlayer{
 			Player: players[0],
 			Color:  White,
