@@ -1,5 +1,12 @@
 package main
 
+func Abs(num int) int {
+	if num < 0 {
+		return num * -1
+	}
+	return num
+}
+
 type Movement interface {
 	Move(from, to string) bool
 }
@@ -56,6 +63,19 @@ func (l LMovement) Move(from, to string) bool {
 	colDistance := Abs(int(destCol) - int(fromCol))
 
 	return rowDistance == 2 && colDistance == 1
+}
+
+type Combined struct {
+	movements []Movement
+}
+
+func (c *Combined) Move(from, to string) bool {
+	for _, movement := range c.movements {
+		if movement.Move(from, to) {
+			return true
+		}
+	}
+	return false
 }
 
 type Piece struct {

@@ -101,9 +101,15 @@ func TestMovePiece(t *testing.T) {
 		t.Errorf("Expected Knight on b5, got %v", board.Square("b5"))
 	}
 
-    board.Move("a2", "c3")
+	board.Move("a2", "c3")
 
-    if board.Square("c3") == Pawn(White) {
-        t.Error("Should not have a pawn on c3, invalid movement")
-    }
+	if board.Square("c3") == Pawn(White) {
+		t.Error("Should not have a pawn on c3, invalid movement")
+	}
+
+	board.Move("a1", "a5")
+
+	if board.Square("a5") == Rook(White) {
+		t.Error("Should not move from a1 to a5, there's a pawn in the way")
+	}
 }

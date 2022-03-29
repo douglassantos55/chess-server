@@ -5,13 +5,6 @@ import (
 	"strings"
 )
 
-func Abs(num int) int {
-	if num < 0 {
-		return num * -1
-	}
-	return num
-}
-
 func parseSquare(square string) (int, rune) {
 	coord := strings.Split(square, "")
 	x, _ := strconv.ParseInt(coord[1], 10, 64)
@@ -80,6 +73,7 @@ func (b *Board) Square(square string) Piece {
 }
 
 func (b *Board) Move(from, to string) {
+	// TODO: don't jump over pieces, except horse
 	piece := b.Square(from)
 
 	if piece.Move(from, to) {
