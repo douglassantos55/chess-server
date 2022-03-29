@@ -5,26 +5,24 @@ import (
 )
 
 func TestParseSquare(t *testing.T) {
-	board := NewBoard()
-
-	if _, c := board.parseSquare("a1"); c != "a" {
+	if _, c := parseSquare("a1"); c != 'a' {
 		t.Errorf("Expected 'a', got '%v'", c)
 	}
-	if r, _ := board.parseSquare("a1"); r != 0 {
+	if r, _ := parseSquare("a1"); r != 0 {
 		t.Errorf("Expected '0', got '%v'", r)
 	}
 
-	if _, c := board.parseSquare("d5"); c != "d" {
+	if _, c := parseSquare("d5"); c != 'd' {
 		t.Errorf("Expected 'd', got '%v'", c)
 	}
-	if r, _ := board.parseSquare("d5"); r != 4 {
+	if r, _ := parseSquare("d5"); r != 4 {
 		t.Errorf("Expected '4', got '%v'", r)
 	}
 
-	if _, c := board.parseSquare("h8"); c != "h" {
+	if _, c := parseSquare("h8"); c != 'h' {
 		t.Errorf("Expected 'h', got '%v'", c)
 	}
-	if r, _ := board.parseSquare("h8"); r != 7 {
+	if r, _ := parseSquare("h8"); r != 7 {
 		t.Errorf("Expected '7', got '%v'", r)
 	}
 }
@@ -102,4 +100,10 @@ func TestMovePiece(t *testing.T) {
 	if board.Square("b5") != Knight(White) {
 		t.Errorf("Expected Knight on b5, got %v", board.Square("b5"))
 	}
+
+    board.Move("a2", "c3")
+
+    if board.Square("c3") == Pawn(White) {
+        t.Error("Should not have a pawn on c3, invalid movement")
+    }
 }

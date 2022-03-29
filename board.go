@@ -1,124 +1,92 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
 
-type Board struct {
-	matrix [8]map[string]Piece
-}
-
-type Piece struct {
-	Type  string
-	Color Color
-}
-
-func CreatePiece(name string, color Color) Piece {
-	return Piece{Type: name, Color: color}
-}
-
-func (p *Piece) String() string {
-	if p.Type == "" {
-		return ""
+func Abs(num int) int {
+	if num < 0 {
+		return num * -1
 	}
-	return fmt.Sprintf("%s %s", p.Color, p.Type)
+	return num
 }
 
-func Empty() Piece {
-	return CreatePiece("", White)
+func parseSquare(square string) (int, rune) {
+	coord := strings.Split(square, "")
+	x, _ := strconv.ParseInt(coord[1], 10, 64)
+
+	return int(x - 1), []rune(coord[0])[0]
 }
 
-func Rook(color Color) Piece {
-	return CreatePiece("R", color)
-}
-func Knight(color Color) Piece {
-	return CreatePiece("N", color)
-}
-func Bishop(color Color) Piece {
-	return CreatePiece("B", color)
-}
-func Queen(color Color) Piece {
-	return CreatePiece("Q", color)
-}
-func King(color Color) Piece {
-	return CreatePiece("K", color)
-}
-func Pawn(color Color) Piece {
-	return CreatePiece("p", color)
+type Board struct {
+	matrix [8]map[rune]Piece
 }
 
 func NewBoard() *Board {
 	return &Board{
-		matrix: [8]map[string]Piece{
+		matrix: [8]map[rune]Piece{
 			{
-				"a": Rook(White),
-				"b": Knight(White),
-				"c": Bishop(White),
-				"d": Queen(White),
-				"e": King(White),
-				"f": Bishop(White),
-				"g": Knight(White),
-				"h": Rook(White),
+				'a': Rook(White),
+				'b': Knight(White),
+				'c': Bishop(White),
+				'd': Queen(White),
+				'e': King(White),
+				'f': Bishop(White),
+				'g': Knight(White),
+				'h': Rook(White),
 			},
 			{
-				"a": Pawn(White),
-				"b": Pawn(White),
-				"c": Pawn(White),
-				"d": Pawn(White),
-				"e": Pawn(White),
-				"f": Pawn(White),
-				"g": Pawn(White),
-				"h": Pawn(White),
+				'a': Pawn(White),
+				'b': Pawn(White),
+				'c': Pawn(White),
+				'd': Pawn(White),
+				'e': Pawn(White),
+				'f': Pawn(White),
+				'g': Pawn(White),
+				'h': Pawn(White),
 			},
-			{"a": Empty(), "b": Empty(), "c": Empty(), "d": Empty(), "e": Empty(), "f": Empty(), "g": Empty(), "h": Empty()},
-			{"a": Empty(), "b": Empty(), "c": Empty(), "d": Empty(), "e": Empty(), "f": Empty(), "g": Empty(), "h": Empty()},
-			{"a": Empty(), "b": Empty(), "c": Empty(), "d": Empty(), "e": Empty(), "f": Empty(), "g": Empty(), "h": Empty()},
-			{"a": Empty(), "b": Empty(), "c": Empty(), "d": Empty(), "e": Empty(), "f": Empty(), "g": Empty(), "h": Empty()},
+			{'a': Empty(), 'b': Empty(), 'c': Empty(), 'd': Empty(), 'e': Empty(), 'f': Empty(), 'g': Empty(), 'h': Empty()},
+			{'a': Empty(), 'b': Empty(), 'c': Empty(), 'd': Empty(), 'e': Empty(), 'f': Empty(), 'g': Empty(), 'h': Empty()},
+			{'a': Empty(), 'b': Empty(), 'c': Empty(), 'd': Empty(), 'e': Empty(), 'f': Empty(), 'g': Empty(), 'h': Empty()},
+			{'a': Empty(), 'b': Empty(), 'c': Empty(), 'd': Empty(), 'e': Empty(), 'f': Empty(), 'g': Empty(), 'h': Empty()},
 			{
-				"a": Pawn(Black),
-				"b": Pawn(Black),
-				"c": Pawn(Black),
-				"d": Pawn(Black),
-				"e": Pawn(Black),
-				"f": Pawn(Black),
-				"g": Pawn(Black),
-				"h": Pawn(Black),
+				'a': Pawn(Black),
+				'b': Pawn(Black),
+				'c': Pawn(Black),
+				'd': Pawn(Black),
+				'e': Pawn(Black),
+				'f': Pawn(Black),
+				'g': Pawn(Black),
+				'h': Pawn(Black),
 			},
 			{
-				"a": Rook(Black),
-				"b": Knight(Black),
-				"c": Bishop(Black),
-				"d": Queen(Black),
-				"e": King(Black),
-				"f": Bishop(Black),
-				"g": Knight(Black),
-				"h": Rook(Black),
+				'a': Rook(Black),
+				'b': Knight(Black),
+				'c': Bishop(Black),
+				'd': Queen(Black),
+				'e': King(Black),
+				'f': Bishop(Black),
+				'g': Knight(Black),
+				'h': Rook(Black),
 			},
 		},
 	}
 }
 
 func (b *Board) Square(square string) Piece {
-	row, col := b.parseSquare(square)
+	row, col := parseSquare(square)
 	return b.matrix[row][col]
 }
 
-func (b *Board) parseSquare(square string) (int64, string) {
-	coord := strings.Split(square, "")
-	x, _ := strconv.ParseInt(coord[1], 10, 64)
-
-	return x - 1, coord[0]
-}
-
 func (b *Board) Move(from, to string) {
-	// TODO: check if it's a valid move
 	piece := b.Square(from)
 
-	destRow, destCol := b.parseSquare(to)
-	sourceRow, sourceCol := b.parseSquare(from)
+	if piece.Move(from, to) {
+		destRow, destCol := parseSquare(to)
+		sourceRow, sourceCol := parseSquare(from)
 
-	b.matrix[destRow][destCol] = piece
-	b.matrix[sourceRow][sourceCol] = Empty()
+		b.matrix[destRow][destCol] = piece
+		b.matrix[sourceRow][sourceCol] = Empty()
+	}
 }
