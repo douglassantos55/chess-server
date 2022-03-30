@@ -76,7 +76,7 @@ func (b *Board) Move(from, to string) {
 	// TODO: don't jump over pieces, except horse
 	piece := b.Square(from)
 
-	if piece.Move(from, to) {
+	if piece.Move(from, to, b) {
 		destRow, destCol := parseSquare(to)
 		sourceRow, sourceCol := parseSquare(from)
 

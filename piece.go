@@ -1,5 +1,7 @@
 package main
 
+import "math"
+
 func Abs(num int) int {
 	if num < 0 {
 		return num * -1
@@ -8,14 +10,19 @@ func Abs(num int) int {
 }
 
 type Movement interface {
-	Move(from, to string) bool
+	IsValid(from, to string) bool
+	IsAllowed(from, to string, board *Board) bool
 }
 
 type Forward struct {
 	squares int
 }
 
-func (f Forward) Move(from, to string) bool {
+func (f Forward) IsAllowed(from, to string, board *Board) bool {
+	return true
+}
+
+func (f Forward) IsValid(from, to string) bool {
 	destRow, destCol := parseSquare(to)
 	fromRow, fromCol := parseSquare(from)
 
@@ -29,7 +36,28 @@ type Straight struct {
 	squares int
 }
 
-func (s Straight) Move(from, to string) bool {
+func (s Straight) IsAllowed(from, to string, board *Board) bool {
+	destRow, destCol := parseSquare(to)
+	fromRow, fromCol := parseSquare(from)
+
+	startRow := math.Min(float64(destRow), float64(fromRow))
+	endRow := math.Max(float64(destRow), float64(fromRow))
+
+	startCol := math.Min(float64(destCol), float64(fromCol))
+	endCol := math.Max(float64(destCol), float64(fromCol))
+
+	for i := int(startRow); i <= int(endRow); i++ {
+		for j := int(startCol); j <= int(endCol); j++ {
+			if board.matrix[i][rune(j)] != Empty() {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+func (s Straight) IsValid(from, to string) bool {
 	destRow, destCol := parseSquare(to)
 	fromRow, fromCol := parseSquare(from)
 
@@ -43,7 +71,11 @@ type Diagonal struct {
 	squares int
 }
 
-func (d Diagonal) Move(from, to string) bool {
+func (d Diagonal) IsAllowed(from, to string, board *Board) bool {
+	return true
+}
+
+func (d Diagonal) IsValid(from, to string) bool {
 	destRow, destCol := parseSquare(to)
 	fromRow, fromCol := parseSquare(from)
 
@@ -55,7 +87,11 @@ func (d Diagonal) Move(from, to string) bool {
 
 type LMovement struct{}
 
-func (l LMovement) Move(from, to string) bool {
+func (l LMovement) IsAllowed(from, to string, board *Board) bool {
+	return true
+}
+
+func (l LMovement) IsValid(from, to string) bool {
 	destRow, destCol := parseSquare(to)
 	fromRow, fromCol := parseSquare(from)
 
@@ -69,9 +105,13 @@ type Combined struct {
 	movements []Movement
 }
 
-func (c *Combined) Move(from, to string) bool {
+func (c Combined) IsAllowed(from, to string, board *Board) bool {
+	return true
+}
+
+func (c Combined) IsValid(from, to string) bool {
 	for _, movement := range c.movements {
-		if movement.Move(from, to) {
+		if movement.IsValid(from, to) {
 			return true
 		}
 	}
@@ -84,8 +124,8 @@ type Piece struct {
 	Movement Movement
 }
 
-func (p *Piece) Move(from, to string) bool {
-	return p.Movement.Move(from, to)
+func (p *Piece) Move(from, to string, board *Board) bool {
+	return p.Movement.IsValid(from, to) && p.Movement.IsAllowed(from, to, board)
 }
 
 func CreatePiece(name string, color Color, movement Movement) Piece {
@@ -109,10 +149,16 @@ func Bishop(color Color) Piece {
 	return CreatePiece("B", color, Diagonal{})
 }
 func Queen(color Color) Piece {
-	return CreatePiece("Q", color, nil)
+	movement := Combined{
+		[]Movement{Straight{}, Diagonal{}},
+	}
+	return CreatePiece("Q", color, movement)
 }
 func King(color Color) Piece {
-	return CreatePiece("K", color, nil)
+	movement := Combined{
+		[]Movement{Straight{1}, Diagonal{1}},
+	}
+	return CreatePiece("K", color, movement)
 }
 func Pawn(color Color) Piece {
 	return CreatePiece("p", color, Forward{1})

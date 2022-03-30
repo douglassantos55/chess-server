@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -39,10 +40,10 @@ func TestCreatesBoard(t *testing.T) {
 	if board.Square("c1") != Bishop(White) {
 		t.Errorf("Expected Bishop on c1, got %v", board.Square("c1"))
 	}
-	if board.Square("d1") != Queen(White) {
+	if !reflect.DeepEqual(board.Square("d1"), Queen(White)) {
 		t.Errorf("Expected Queen on d1, got %v", board.Square("d1"))
 	}
-	if board.Square("e1") != King(White) {
+	if !reflect.DeepEqual(board.Square("e1"), King(White)) {
 		t.Errorf("Expected King on e1, got %v", board.Square("e1"))
 	}
 	if board.Square("f1") != Bishop(White) {
@@ -64,10 +65,10 @@ func TestCreatesBoard(t *testing.T) {
 	if board.Square("c8") != Bishop(Black) {
 		t.Errorf("Expected Bishop on c8, got %v", board.Square("c8"))
 	}
-	if board.Square("d8") != Queen(Black) {
+	if !reflect.DeepEqual(board.Square("d8"), Queen(Black)) {
 		t.Errorf("Expected Queen on d8, got %v", board.Square("d8"))
 	}
-	if board.Square("e8") != King(Black) {
+	if !reflect.DeepEqual(board.Square("e8"), King(Black)) {
 		t.Errorf("Expected King on e8, got %v", board.Square("e8"))
 	}
 	if board.Square("f8") != Bishop(Black) {
