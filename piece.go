@@ -11,15 +11,15 @@ func Abs(num int) int {
 
 type Movement interface {
 	IsValid(from, to string) bool
-	IsAllowed(from, to string, board *Board) bool
+	IsAllowed(from, to string, color Color, board *Board) bool
 }
 
 type Forward struct {
 	squares int
 }
 
-func (f Forward) IsAllowed(from, to string, board *Board) bool {
-	return true
+func (f Forward) IsAllowed(from, to string, color Color, board *Board) bool {
+	return board.Square(to) == Empty()
 }
 
 func (f Forward) IsValid(from, to string) bool {
@@ -36,7 +36,7 @@ type Straight struct {
 	squares int
 }
 
-func (s Straight) IsAllowed(from, to string, board *Board) bool {
+func (s Straight) IsAllowed(from, to string, color Color, board *Board) bool {
 	destRow, destCol := parseSquare(to)
 	fromRow, fromCol := parseSquare(from)
 
@@ -48,8 +48,12 @@ func (s Straight) IsAllowed(from, to string, board *Board) bool {
 
 	for i := int(startRow); i <= int(endRow); i++ {
 		for j := int(startCol); j <= int(endCol); j++ {
-			if board.matrix[i][rune(j)] != Empty() {
-				return false
+			piece := board.matrix[i][rune(j)]
+
+			if piece != Empty() {
+				if piece.Color == color || i < int(endRow) || j < int(endCol) {
+					return false
+				}
 			}
 		}
 	}
@@ -71,7 +75,25 @@ type Diagonal struct {
 	squares int
 }
 
-func (d Diagonal) IsAllowed(from, to string, board *Board) bool {
+func (d Diagonal) IsAllowed(from, to string, color Color, board *Board) bool {
+	destRow, destCol := parseSquare(to)
+	fromRow, fromCol := parseSquare(from)
+
+	startRow := math.Min(float64(destRow), float64(fromRow))
+	startCol := math.Min(float64(destCol), float64(fromCol))
+
+	distance := Abs(destRow - fromRow)
+
+	for i := 0; i <= distance; i++ {
+		piece := board.matrix[int(startRow)+i][rune(int(startCol)+i)]
+
+		if piece != Empty() {
+			if piece.Color == color || i != distance {
+				return false
+			}
+		}
+	}
+
 	return true
 }
 
@@ -87,8 +109,9 @@ func (d Diagonal) IsValid(from, to string) bool {
 
 type LMovement struct{}
 
-func (l LMovement) IsAllowed(from, to string, board *Board) bool {
-	return true
+func (l LMovement) IsAllowed(from, to string, color Color, board *Board) bool {
+	piece := board.Square(to)
+	return piece == Empty() || piece.Color != color
 }
 
 func (l LMovement) IsValid(from, to string) bool {
@@ -105,8 +128,14 @@ type Combined struct {
 	movements []Movement
 }
 
-func (c Combined) IsAllowed(from, to string, board *Board) bool {
-	return true
+func (c Combined) IsAllowed(from, to string, color Color, board *Board) bool {
+    for _, movement := range c.movements {
+        if movement.IsAllowed(from, to, color, board) {
+            return true
+        }
+    }
+
+	return false
 }
 
 func (c Combined) IsValid(from, to string) bool {
@@ -125,7 +154,7 @@ type Piece struct {
 }
 
 func (p *Piece) Move(from, to string, board *Board) bool {
-	return p.Movement.IsValid(from, to) && p.Movement.IsAllowed(from, to, board)
+	return p.Movement.IsValid(from, to) && p.Movement.IsAllowed(from, to, p.Color, board)
 }
 
 func CreatePiece(name string, color Color, movement Movement) Piece {
