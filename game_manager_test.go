@@ -63,3 +63,40 @@ func TestCreatesGame(t *testing.T) {
 		t.Error("Expected game to exist, got nil instead")
 	}
 }
+
+func TestMovePieceHandler(t *testing.T) {
+	gameManager := NewGameManager()
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go gameManager.Process(Message{
+		Type:    CreateGame,
+		Payload: []*Player{p1, p2},
+	})
+
+	res := <-p1.Outgoing
+	<-p2.Outgoing
+
+	params := res.Payload.(GameParams)
+
+	<-wait(func() {
+		gameManager.Process(Message{
+			Type: Move,
+			Payload: MovePiece{
+				From:   "e2",
+				To:     "e4",
+				GameId: params.GameId,
+			},
+		})
+	})
+
+	game := gameManager.FindGame(params.GameId)
+
+	if game.board.Square("e2") != Empty() {
+		t.Errorf("Expected e2 to be empty, got %v", game.board.Square("e2"))
+	}
+	if game.board.Square("e4") != Pawn(White) {
+		t.Errorf("Expected e4 to have a pawn, got %v", game.board.Square("e4"))
+	}
+}

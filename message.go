@@ -13,6 +13,7 @@ const (
 	MatchDeclined  MessageType = "match_declined"
 	CreateGame     MessageType = "create_game"
 	MatchFound     MessageType = "match_found"
+	Move           MessageType = "move_piece"
 )
 
 const (
@@ -41,4 +42,10 @@ type Response struct {
 type GameParams struct {
 	GameId uuid.UUID
 	Color  Color
+}
+
+type MovePiece struct {
+	From   string
+	To     string
+	GameId uuid.UUID
 }

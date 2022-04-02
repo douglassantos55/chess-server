@@ -2,6 +2,7 @@ package main
 
 import (
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -22,7 +23,7 @@ func (g *GameManager) CreateGame(players []*Player) *Game {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	game := NewGame(players)
+	game := NewGame(time.Second, players)
 	g.games[game.Id] = game
 
 	return game
@@ -40,5 +41,10 @@ func (g *GameManager) Process(event Message) {
 	case CreateGame:
 		game := g.CreateGame(event.Payload.([]*Player))
 		game.Start()
+	case Move:
+		data := event.Payload.(MovePiece)
+		game := g.FindGame(data.GameId)
+
+		game.Move(data.From, data.To)
 	}
 }
