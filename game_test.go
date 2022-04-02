@@ -11,7 +11,7 @@ func TestAssignsColorsToPlayers(t *testing.T) {
 	p1 := NewTestPlayer()
 	p2 := NewTestPlayer()
 
-	game := NewGame([]*Player{p1, p2})
+	game := NewGame(time.Second, []*Player{p1, p2})
 	go game.Start()
 
 	var params1 GameParams
@@ -37,13 +37,13 @@ func TestPausesTimerOnEndTurn(t *testing.T) {
 	p1 := NewTestPlayer()
 	p2 := NewTestPlayer()
 
-	game := NewGame([]*Player{p1, p2})
+	game := NewGame(time.Second, []*Player{p1, p2})
 	go game.Start()
 
 	<-p1.Outgoing // StartGame
 	<-p2.Outgoing // StartGame
 
-	game.EndTurn(White)
+	game.EndTurn()
 
 	select {
 	case <-time.After(time.Second):
@@ -52,11 +52,11 @@ func TestPausesTimerOnEndTurn(t *testing.T) {
 	}
 }
 
-func TestGameOverOnTime(t *testing.T) {
+func TestStartsWhiteTimer(t *testing.T) {
 	p1 := NewTestPlayer()
 	p2 := NewTestPlayer()
 
-	game := NewGame([]*Player{p1, p2})
+	game := NewGame(time.Second, []*Player{p1, p2})
 	go game.Start()
 
 	<-p1.Outgoing
@@ -79,17 +79,17 @@ func TestTimerStops(t *testing.T) {
 	p1 := NewTestPlayer()
 	p2 := NewTestPlayer()
 
-	game := NewGame([]*Player{p1, p2})
+	game := NewGame(time.Second, []*Player{p1, p2})
 	go game.Start()
 
 	<-p1.Outgoing
 	<-p2.Outgoing
 
 	time.Sleep(500 * time.Millisecond)
-	game.EndTurn(White)
+	game.EndTurn()
 
-	if game.White.left >= time.Second {
-		t.Errorf("Time left should be 500ms, got %v", game.White.left)
+	if game.Current.Next.left >= time.Second {
+		t.Errorf("Time left should be 500ms, got %v", game.Current.Next.left)
 	}
 }
 
@@ -97,7 +97,7 @@ func TestTimerContinues(t *testing.T) {
 	p1 := NewTestPlayer()
 	p2 := NewTestPlayer()
 
-	game := NewGame([]*Player{p1, p2})
+	game := NewGame(time.Second, []*Player{p1, p2})
 	go game.Start()
 
 	<-p1.Outgoing
@@ -105,12 +105,83 @@ func TestTimerContinues(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	game.EndTurn(White)
-	game.StartTurn(White)
+	game.EndTurn() // stops white and moves current to black
+	game.EndTurn() // stops black and moves current back to white
+
+	game.StartTurn()
 
 	select {
 	case <-game.Over:
 	case <-time.After(time.Second):
 		t.Error("Expected game over within 500ms, got timeout after 1s")
+	}
+}
+
+func TestWhiteMovePassesTurn(t *testing.T) {
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	game := NewGame(500*time.Millisecond, []*Player{p1, p2})
+	go game.Start()
+
+	<-p1.Outgoing
+	<-p2.Outgoing
+
+	game.Move("e2", "e4")
+
+	select {
+	case result := <-game.Over:
+		if result.Winner != p1 {
+			t.Error("Expected white to win on time")
+		}
+	case <-time.After(time.Second):
+		t.Error("Expected game over")
+	}
+}
+
+func TestBlackMovePassesTurn(t *testing.T) {
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	game := NewGame(500*time.Millisecond, []*Player{p1, p2})
+	go game.Start()
+
+	<-p1.Outgoing
+	<-p2.Outgoing
+
+	game.EndTurn()
+	game.StartTurn()
+
+	game.Move("e7", "e5")
+
+	select {
+	case result := <-game.Over:
+		if result.Winner != p2 {
+			t.Error("Expected black to win on time")
+		}
+	case <-time.After(time.Second):
+		t.Error("Expected game over")
+	}
+}
+
+func TestWhiteCannotMoveBlackPiece(t *testing.T) {
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	game := NewGame(500*time.Millisecond, []*Player{p1, p2})
+	go game.Start()
+
+	<-p1.Outgoing
+	<-p2.Outgoing
+
+	game.Move("e7", "e5")
+
+	select {
+	case result := <-game.Over:
+		if result.Winner != p2 {
+			t.Error("Expected black to win on time")
+		}
+	case <-time.After(time.Second):
+		t.Error("Expected white's timer to run out")
 	}
 }

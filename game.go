@@ -20,13 +20,14 @@ type GameResult struct {
 }
 
 type GamePlayer struct {
+	Next   *GamePlayer
 	Player *Player
 	Color  Color
 
-	timer *time.Timer
-	left  time.Duration
-	mutex *sync.Mutex
 	start time.Time
+	left  time.Duration
+	timer *time.Timer
+	mutex *sync.Mutex
 }
 
 func NewGamePlayer(color Color, player *Player, duration time.Duration) *GamePlayer {
@@ -35,7 +36,7 @@ func NewGamePlayer(color Color, player *Player, duration time.Duration) *GamePla
 
 	return &GamePlayer{
 		Player: player,
-		Color:  Black,
+		Color:  color,
 
 		mutex: new(sync.Mutex),
 		left:  duration,
@@ -43,7 +44,17 @@ func NewGamePlayer(color Color, player *Player, duration time.Duration) *GamePla
 	}
 }
 
-func (p *GamePlayer) StartTurn() {
+func (p *GamePlayer) SetNext(player *GamePlayer) {
+	if p.Next != nil {
+		player.Next = p.Next
+	} else {
+		player.Next = p
+	}
+
+	p.Next = player
+}
+
+func (p *GamePlayer) StartTimer() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -51,7 +62,7 @@ func (p *GamePlayer) StartTurn() {
 	p.timer.Reset(p.left)
 }
 
-func (p *GamePlayer) EndTurn() {
+func (p *GamePlayer) StopTimer() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -64,53 +75,71 @@ func (p *GamePlayer) Send(response Response) {
 }
 
 type Game struct {
-	Id    uuid.UUID
-	Over  chan GameResult
-	Black *GamePlayer
-	White *GamePlayer
+	Id      uuid.UUID
+	Current *GamePlayer
+	Over    chan GameResult
 
 	board *Board
 	mutex *sync.Mutex
 }
 
-func NewGame(players []*Player) *Game {
-	return &Game{
-		Id:    uuid.New(),
-		Over:  make(chan GameResult),
-		White: NewGamePlayer(White, players[0], time.Second),
-		Black: NewGamePlayer(Black, players[1], time.Second),
+func NewGame(duration time.Duration, players []*Player) *Game {
+	white := NewGamePlayer(White, players[0], duration)
+	black := NewGamePlayer(Black, players[1], duration)
+
+	white.SetNext(black)
+
+	game := &Game{
+		Id:      uuid.New(),
+		Over:    make(chan GameResult),
+		Current: white,
 
 		board: NewBoard(),
 		mutex: new(sync.Mutex),
 	}
+
+	go func() {
+		select {
+		case <-white.timer.C:
+			game.GameOver()
+		case <-black.timer.C:
+			game.GameOver()
+		}
+	}()
+
+	return game
 }
 
-func (g *Game) GameOver(winner, loser *GamePlayer) {
+func (g *Game) GameOver() {
 	g.Over <- GameResult{
-		Winner: winner.Player,
-		Loser:  loser.Player,
+		Loser:  g.Current.Player,
+		Winner: g.Current.Next.Player,
 	}
 }
 
-func (g *Game) StartTurn(color Color) {
+func (g *Game) EndTurn() {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	if color == White {
-		g.White.StartTurn()
-	} else {
-		g.Black.StartTurn()
-	}
+	g.Current.StopTimer()
+	g.Current = g.Current.Next
 }
 
-func (g *Game) EndTurn(color Color) {
+func (g *Game) StartTurn() {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	if color == White {
-		g.White.EndTurn()
-	} else {
-		g.Black.EndTurn()
+	g.Current.StartTimer()
+}
+
+func (g *Game) Move(from, to string) {
+	piece := g.board.Square(from)
+
+	if piece.Color == g.Current.Color {
+		g.board.Move(from, to)
+
+		g.EndTurn()
+		g.StartTurn()
 	}
 }
 
@@ -119,32 +148,24 @@ func (g *Game) Start() {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	g.White.Send(Response{
-		Type: StartGame,
-		Payload: GameParams{
-			GameId: g.Id,
-			Color:  White,
-		},
-	})
+	players := make(map[*GamePlayer]*GamePlayer)
 
-	g.Black.Send(Response{
-		Type: StartGame,
-		Payload: GameParams{
-			GameId: g.Id,
-			Color:  Black,
-		},
-	})
-
-	g.White.StartTurn()
-
-	go func() {
-		for {
-			select {
-			case <-g.White.timer.C:
-				g.GameOver(g.Black, g.White)
-			case <-g.Black.timer.C:
-				g.GameOver(g.White, g.Black)
-			}
+	for player := g.Current; player != nil; player = player.Next {
+		// we've seen this dude, it's looping now, get out
+		if _, ok := players[player]; ok {
+			break
 		}
-	}()
+
+		player.Send(Response{
+			Type: StartGame,
+			Payload: GameParams{
+				GameId: g.Id,
+				Color:  player.Color,
+			},
+		})
+
+		players[player] = player
+	}
+
+	g.Current.StartTimer()
 }
