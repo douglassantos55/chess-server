@@ -129,11 +129,11 @@ type Combined struct {
 }
 
 func (c Combined) IsAllowed(from, to string, color Color, board *Board) bool {
-    for _, movement := range c.movements {
-        if movement.IsAllowed(from, to, color, board) {
-            return true
-        }
-    }
+	for _, movement := range c.movements {
+		if movement.IsAllowed(from, to, color, board) {
+			return true
+		}
+	}
 
 	return false
 }

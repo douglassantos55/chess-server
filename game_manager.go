@@ -18,29 +18,14 @@ func NewGameManager() *GameManager {
 	}
 }
 
-func (g *GameManager) CreateGame(players []*Player) {
+func (g *GameManager) CreateGame(players []*Player) *Game {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
 	game := NewGame(players)
 	g.games[game.Id] = game
 
-	game.White.Send(Response{
-		Type: StartGame,
-		Payload: GameParams{
-			GameId: game.Id,
-			Color:  White,
-		},
-	})
-
-	game.Black.Send(Response{
-		Type: StartGame,
-		Payload: GameParams{
-			GameId: game.Id,
-			Color:  Black,
-		},
-	})
-
+	return game
 }
 
 func (g *GameManager) FindGame(gameId uuid.UUID) *Game {
@@ -53,6 +38,7 @@ func (g *GameManager) FindGame(gameId uuid.UUID) *Game {
 func (g *GameManager) Process(event Message) {
 	switch event.Type {
 	case CreateGame:
-		g.CreateGame(event.Payload.([]*Player))
+		game := g.CreateGame(event.Payload.([]*Player))
+		game.Start()
 	}
 }

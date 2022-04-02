@@ -123,3 +123,38 @@ func TestAssignsColorsToPlayers(t *testing.T) {
 		t.Errorf("Both players have the same color %v", params1.Color)
 	}
 }
+
+func TestGameOverOnTime(t *testing.T) {
+	gameManager := NewGameManager()
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go gameManager.Process(Message{
+		Type:    CreateGame,
+		Payload: []*Player{p1, p2},
+	})
+
+	<-p1.Outgoing
+	<-p2.Outgoing
+
+	time.Sleep(time.Second)
+
+	select {
+	case res := <-p1.Outgoing:
+		if res.Type != GameOver {
+			t.Errorf("Expected 'GameOver', got '%v'", res.Type)
+		}
+	case <-time.After(time.Second):
+		t.Error("Timeout")
+	}
+
+	select {
+	case res := <-p2.Outgoing:
+		if res.Type != GameOver {
+			t.Errorf("Expected 'GameOver', got '%v'", res.Type)
+		}
+	case <-time.After(time.Second):
+		t.Error("Timeout")
+	}
+}

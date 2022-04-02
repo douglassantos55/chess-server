@@ -93,7 +93,7 @@ func TestMovePiece(t *testing.T) {
 		t.Errorf("Expected Knight on c3, got %v", board.Square("c3"))
 	}
 
-    board.Move("c3", "b1")
+	board.Move("c3", "b1")
 
 	if board.Square("b1") != Knight(White) {
 		t.Errorf("Expected Knight on b1, got %v", board.Square("b1"))
@@ -124,7 +124,7 @@ func TestMovePiece(t *testing.T) {
 		t.Error("Should not move from a1 to a5, there's a pawn in the way")
 	}
 
-    board.Move("a2", "a4")
+	board.Move("a2", "a4")
 	board.Move("a1", "a4")
 
 	if board.Square("a4") == Rook(White) {

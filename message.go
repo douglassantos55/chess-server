@@ -21,6 +21,8 @@ const (
 	WaitOtherPlayers ResponseType = "wait_other_players"
 	MatchCanceled    ResponseType = "match_canceled"
 	StartGame        ResponseType = "start_game"
+	StartTurn        ResponseType = "start_turn"
+	GameOver         ResponseType = "game_over"
 )
 
 type Message struct {

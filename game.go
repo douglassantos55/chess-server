@@ -16,7 +16,22 @@ const (
 type GamePlayer struct {
 	Player *Player
 	Color  Color
-	timer  *time.Timer
+
+	timer *time.Timer
+	left  time.Duration
+}
+
+func NewGamePlayer(color Color, player *Player, duration time.Duration) *GamePlayer {
+	return &GamePlayer{
+		Player: player,
+		Color:  Black,
+		left:   duration,
+		timer:  new(time.Timer),
+	}
+}
+
+func (p *GamePlayer) StartTurn() {
+	p.timer = time.NewTimer(p.left)
 }
 
 func (p *GamePlayer) Send(response Response) {
@@ -35,15 +50,40 @@ func NewGame(players []*Player) *Game {
 	return &Game{
 		Id:    uuid.New(),
 		board: NewBoard(),
-		White: &GamePlayer{
-			Player: players[0],
-			Color:  White,
-			timer:  time.NewTimer(time.Second),
-		},
-		Black: &GamePlayer{
-			Player: players[1],
-			Color:  Black,
-			timer:  time.NewTimer(time.Second),
-		},
+		White: NewGamePlayer(White, players[0], time.Second),
+		Black: NewGamePlayer(Black, players[1], time.Second),
 	}
+}
+
+func (g *Game) Start() {
+	g.White.Send(Response{
+		Type: StartGame,
+		Payload: GameParams{
+			GameId: g.Id,
+			Color:  White,
+		},
+	})
+
+	g.Black.Send(Response{
+		Type: StartGame,
+		Payload: GameParams{
+			GameId: g.Id,
+			Color:  Black,
+		},
+	})
+
+	g.White.StartTurn()
+
+	go func() {
+		for {
+			select {
+			case <-g.White.timer.C:
+				g.White.Send(Response{Type: GameOver})
+				g.Black.Send(Response{Type: GameOver})
+			case <-g.Black.timer.C:
+				g.White.Send(Response{Type: GameOver})
+				g.Black.Send(Response{Type: GameOver})
+			}
+		}
+	}()
 }
