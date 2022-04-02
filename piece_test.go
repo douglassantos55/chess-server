@@ -85,7 +85,7 @@ func TestLMovement(t *testing.T) {
 }
 
 func TestForwardMovement(t *testing.T) {
-	forward := Forward{1}
+	forward := Forward{squares: 1}
 
 	if !forward.IsValid("a1", "a2") {
 		t.Error("Should move from a1 to a2")
@@ -99,8 +99,8 @@ func TestForwardMovement(t *testing.T) {
 	if forward.IsValid("a1", "b1") {
 		t.Error("Should not move from a1 to b1")
 	}
-	if forward.IsValid("a1", "a3") {
-		t.Error("Should not move from a1 to a3")
+	if forward.IsValid("a1", "a5") {
+		t.Error("Should not move from a1 to a5")
 	}
 	if forward.IsValid("a2", "a1") {
 		t.Error("Should not move backwards from a2 to a1")
@@ -229,7 +229,7 @@ func TestDiagonalIsAllowed(t *testing.T) {
 }
 
 func TestForwardIsAllowed(t *testing.T) {
-	forward := Forward{}
+	forward := Forward{squares: 1}
 
 	if forward.IsAllowed("a1", "a2", White, NewBoard()) {
 		t.Error("Should not be able to move from a1 to a2")
@@ -287,5 +287,13 @@ func TestCombinedIsAllowed(t *testing.T) {
 	}
 	if combined.IsAllowed("c3", "h8", White, NewBoard()) {
 		t.Error("Should not be able to capture from c3 at h8")
+	}
+}
+
+func TestForwardFirstMove(t *testing.T) {
+	forward := Forward{squares: 1}
+
+	if !forward.IsValid("a2", "a4") {
+		t.Error("Should be able to move from a2 to a4")
 	}
 }

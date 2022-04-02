@@ -16,10 +16,14 @@ type Movement interface {
 
 type Forward struct {
 	squares int
+	moved   bool
 }
 
 func (f Forward) IsAllowed(from, to string, color Color, board *Board) bool {
-	return board.Square(to) == Empty()
+	if board.Square(to) == Empty() {
+		f.moved = true
+	}
+	return f.moved
 }
 
 func (f Forward) IsValid(from, to string) bool {
@@ -29,7 +33,13 @@ func (f Forward) IsValid(from, to string) bool {
 	rowDistance := int(destRow - fromRow)
 	colDistance := Abs(int(destCol) - int(fromCol))
 
-	return colDistance == 0 && rowDistance == f.squares
+	multiplier := 1
+
+	if !f.moved {
+		multiplier = 2
+	}
+
+	return colDistance == 0 && (rowDistance > 0 && rowDistance <= f.squares*multiplier)
 }
 
 type Straight struct {
@@ -190,5 +200,5 @@ func King(color Color) Piece {
 	return CreatePiece("K", color, movement)
 }
 func Pawn(color Color) Piece {
-	return CreatePiece("p", color, Forward{1})
+	return CreatePiece("p", color, Forward{squares: 1})
 }
