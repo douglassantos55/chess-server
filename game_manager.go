@@ -26,7 +26,30 @@ func (g *GameManager) CreateGame(players []*Player) *Game {
 	game := NewGame(time.Second, players)
 	g.games[game.Id] = game
 
+	go func() {
+		result := <-game.Over
+
+		g.RemoveGame(game.Id)
+
+		result.Winner.Send(Response{
+			Type:    GameOver,
+			Payload: result,
+		})
+
+		result.Loser.Send(Response{
+			Type:    GameOver,
+			Payload: result,
+		})
+	}()
+
 	return game
+}
+
+func (g *GameManager) RemoveGame(gameId uuid.UUID) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	delete(g.games, gameId)
 }
 
 func (g *GameManager) FindGame(gameId uuid.UUID) *Game {
@@ -46,5 +69,10 @@ func (g *GameManager) Process(event Message) {
 		game := g.FindGame(data.GameId)
 
 		game.Move(data.From, data.To)
+	case Resign:
+		gameId := event.Payload.(uuid.UUID)
+		game := g.FindGame(gameId)
+
+		game.GameOver(event.Player)
 	}
 }

@@ -101,19 +101,25 @@ func NewGame(duration time.Duration, players []*Player) *Game {
 	go func() {
 		select {
 		case <-white.timer.C:
-			game.GameOver()
+			game.GameOver(white.Player)
 		case <-black.timer.C:
-			game.GameOver()
+			game.GameOver(black.Player)
 		}
 	}()
 
 	return game
 }
 
-func (g *Game) GameOver() {
+func (g *Game) GameOver(loser *Player) {
+	winner := g.Current.Player
+
+	if winner == loser {
+		winner = g.Current.Next.Player
+	}
+
 	g.Over <- GameResult{
-		Loser:  g.Current.Player,
-		Winner: g.Current.Next.Player,
+		Loser:  loser,
+		Winner: winner,
 	}
 }
 

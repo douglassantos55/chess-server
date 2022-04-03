@@ -14,6 +14,7 @@ const (
 	CreateGame     MessageType = "create_game"
 	MatchFound     MessageType = "match_found"
 	Move           MessageType = "move_piece"
+	Resign         MessageType = "resign"
 )
 
 const (

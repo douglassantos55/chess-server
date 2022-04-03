@@ -100,3 +100,121 @@ func TestMovePieceHandler(t *testing.T) {
 		t.Errorf("Expected e4 to have a pawn, got %v", game.board.Square("e4"))
 	}
 }
+
+func TestGameOver(t *testing.T) {
+	gameManager := NewGameManager()
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go gameManager.Process(Message{
+		Type:    CreateGame,
+		Payload: []*Player{p1, p2},
+	})
+
+	res := <-p1.Outgoing
+	<-p2.Outgoing
+
+	params := res.Payload.(GameParams)
+
+	select {
+	case res := <-p1.Outgoing:
+		result := res.Payload.(GameResult)
+		if result.Winner != p2 {
+			t.Error("Expected black to win on time")
+		}
+	case res := <-p2.Outgoing:
+		result := res.Payload.(GameResult)
+		if result.Winner != p2 {
+			t.Error("Expected black to win on time")
+		}
+	}
+
+	if gameManager.FindGame(params.GameId) != nil {
+		t.Error("Expected game to be removed")
+	}
+}
+
+func TestWhiteResign(t *testing.T) {
+	gameManager := NewGameManager()
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go gameManager.Process(Message{
+		Type:    CreateGame,
+		Payload: []*Player{p1, p2},
+	})
+
+	res := <-p1.Outgoing
+	<-p2.Outgoing
+
+	params := res.Payload.(GameParams)
+
+	go gameManager.Process(Message{
+		Player:  p1,
+		Type:    Resign,
+		Payload: params.GameId,
+	})
+
+	select {
+	case res := <-p1.Outgoing:
+		result := res.Payload.(GameResult)
+		if result.Winner != p2 {
+			t.Error("Expected black to win by resignation")
+		}
+	case res := <-p2.Outgoing:
+		result := res.Payload.(GameResult)
+		if result.Winner != p2 {
+			t.Error("Expected black to win by resignation")
+		}
+	case <-time.After(time.Second):
+		t.Error("Expected game over, got timeout instead")
+	}
+
+	if gameManager.FindGame(params.GameId) != nil {
+		t.Error("Expected game to be removed")
+	}
+}
+
+func TestBlackResign(t *testing.T) {
+	gameManager := NewGameManager()
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go gameManager.Process(Message{
+		Type:    CreateGame,
+		Payload: []*Player{p1, p2},
+	})
+
+	res := <-p1.Outgoing
+	<-p2.Outgoing
+
+	params := res.Payload.(GameParams)
+
+	go gameManager.Process(Message{
+		Player:  p2,
+		Type:    Resign,
+		Payload: params.GameId,
+	})
+
+	select {
+	case res := <-p1.Outgoing:
+		result := res.Payload.(GameResult)
+		if result.Winner != p1 {
+			t.Error("Expected white to win by resignation")
+		}
+	case res := <-p2.Outgoing:
+		result := res.Payload.(GameResult)
+		if result.Winner != p1 {
+			t.Error("Expected white to win by resignation")
+		}
+	case <-time.After(time.Second):
+		t.Error("Expected game over, got timeout instead")
+	}
+
+	if gameManager.FindGame(params.GameId) != nil {
+		t.Error("Expected game to be removed")
+	}
+}
