@@ -33,13 +33,7 @@ func (f Forward) IsValid(from, to string) bool {
 	rowDistance := int(destRow - fromRow)
 	colDistance := Abs(int(destCol) - int(fromCol))
 
-	multiplier := 1
-
-	if !f.moved {
-		multiplier = 2
-	}
-
-	return colDistance == 0 && (rowDistance > 0 && rowDistance <= f.squares*multiplier)
+	return colDistance == 0 && (rowDistance == f.squares || (!f.moved && rowDistance == f.squares*2))
 }
 
 type Straight struct {
@@ -200,5 +194,11 @@ func King(color Color) Piece {
 	return CreatePiece("K", color, movement)
 }
 func Pawn(color Color) Piece {
-	return CreatePiece("p", color, Forward{squares: 1})
+	direction := 1
+
+	if color == Black {
+		direction = -1
+	}
+
+	return CreatePiece("p", color, Forward{squares: direction})
 }

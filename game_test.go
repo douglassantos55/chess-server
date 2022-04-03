@@ -185,3 +185,28 @@ func TestWhiteCannotMoveBlackPiece(t *testing.T) {
 		t.Error("Expected white's timer to run out")
 	}
 }
+
+func TestBlackCannotMoveWhitePiece(t *testing.T) {
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	game := NewGame(500*time.Millisecond, []*Player{p1, p2})
+	go game.Start()
+
+	<-p1.Outgoing
+	<-p2.Outgoing
+
+
+	game.Move("e2", "e4") // white's turn
+	game.Move("d2", "d4") // black's turn
+
+	select {
+	case result := <-game.Over:
+		if result.Winner != p1 {
+			t.Error("Expected white to win on time")
+		}
+	case <-time.After(600 * time.Millisecond):
+		t.Error("Expected black's timer to run out")
+	}
+}
+

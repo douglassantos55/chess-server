@@ -108,6 +108,14 @@ func TestForwardMovement(t *testing.T) {
 	if forward.IsValid("a2", "b3") {
 		t.Error("Should not move from a2 to b3")
 	}
+
+	downward := Forward{squares: -1}
+	if downward.IsValid("e5", "e7") {
+		t.Error("Should not move backwards from e5 to e7")
+	}
+	if !downward.IsValid("e7", "e5") {
+		t.Error("Should move from e7 to e5")
+	}
 }
 
 func TestCombinedMovement(t *testing.T) {
@@ -296,4 +304,10 @@ func TestForwardFirstMove(t *testing.T) {
 	if !forward.IsValid("a2", "a4") {
 		t.Error("Should be able to move from a2 to a4")
 	}
+
+	downward := Forward{squares: -1}
+	if !downward.IsValid("e7", "e5") {
+		t.Error("Should be able to move from e7 to e5")
+	}
+}
 }
