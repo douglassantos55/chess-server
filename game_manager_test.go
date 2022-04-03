@@ -218,3 +218,85 @@ func TestBlackResign(t *testing.T) {
 		t.Error("Expected game to be removed")
 	}
 }
+
+func TestBlackDisconnectEndsGame(t *testing.T) {
+	gameManager := NewGameManager()
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go gameManager.Process(Message{
+		Type:    CreateGame,
+		Payload: []*Player{p1, p2},
+	})
+
+	res := <-p1.Outgoing
+	<-p2.Outgoing
+
+	params := res.Payload.(GameParams)
+
+	go gameManager.Process(Message{
+		Player: p2,
+		Type:   Disconnected,
+	})
+
+	select {
+	case res := <-p1.Outgoing:
+		result := res.Payload.(GameResult)
+		if result.Winner != p1 {
+			t.Error("Expected white to win by resignation")
+		}
+	case res := <-p2.Outgoing:
+		result := res.Payload.(GameResult)
+		if result.Winner != p1 {
+			t.Error("Expected white to win by resignation")
+		}
+	case <-time.After(time.Second):
+		t.Error("Expected game over, got timeout instead")
+	}
+
+	if gameManager.FindGame(params.GameId) != nil {
+		t.Error("Expected game to be removed")
+	}
+}
+
+func TestWhiteDisconnectEndsGame(t *testing.T) {
+	gameManager := NewGameManager()
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go gameManager.Process(Message{
+		Type:    CreateGame,
+		Payload: []*Player{p1, p2},
+	})
+
+	res := <-p1.Outgoing
+	<-p2.Outgoing
+
+	params := res.Payload.(GameParams)
+
+	go gameManager.Process(Message{
+		Player: p1,
+		Type:   Disconnected,
+	})
+
+	select {
+	case res := <-p1.Outgoing:
+		result := res.Payload.(GameResult)
+		if result.Winner != p2 {
+			t.Error("Expected black to win by resignation")
+		}
+	case res := <-p2.Outgoing:
+		result := res.Payload.(GameResult)
+		if result.Winner != p2 {
+			t.Error("Expected black to win by resignation")
+		}
+	case <-time.After(time.Second):
+		t.Error("Expected game over, got timeout instead")
+	}
+
+	if gameManager.FindGame(params.GameId) != nil {
+		t.Error("Expected game to be removed")
+	}
+}

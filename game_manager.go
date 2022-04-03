@@ -59,6 +59,21 @@ func (g *GameManager) FindGame(gameId uuid.UUID) *Game {
 	return g.games[gameId]
 }
 
+func (g *GameManager) FindPlayerGame(player *Player) *Game {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	for _, game := range g.games {
+		for p := game.Current; p != nil; p = p.Next {
+			if p.Player == player {
+				return game
+			}
+		}
+	}
+
+	return nil
+}
+
 func (g *GameManager) Process(event Message) {
 	switch event.Type {
 	case CreateGame:
@@ -74,5 +89,11 @@ func (g *GameManager) Process(event Message) {
 		game := g.FindGame(gameId)
 
 		game.GameOver(event.Player)
+	case Disconnected:
+		game := g.FindPlayerGame(event.Player)
+
+		if game != nil {
+			game.GameOver(event.Player)
+		}
 	}
 }
