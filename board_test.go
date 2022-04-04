@@ -133,7 +133,7 @@ func TestMovePiece(t *testing.T) {
 
 	board.Move("a1", "a3")
 
-	if board.Square("a3") == Rook(White) {
+	if board.Square("a3") != Rook(White) {
 		t.Error("Should move Rook from a1 to a3")
 	}
 }

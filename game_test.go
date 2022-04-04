@@ -196,7 +196,6 @@ func TestBlackCannotMoveWhitePiece(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-
 	game.Move("e2", "e4") // white's turn
 	game.Move("d2", "d4") // black's turn
 
@@ -209,4 +208,3 @@ func TestBlackCannotMoveWhitePiece(t *testing.T) {
 		t.Error("Expected black's timer to run out")
 	}
 }
-

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -70,6 +71,22 @@ func NewBoard() *Board {
 func (b *Board) Square(square string) Piece {
 	row, col := parseSquare(square)
 	return b.matrix[row][col]
+}
+
+func (b *Board) IsThreatned(square string, color Color) bool {
+	for i := int('a'); i <= int('h'); i++ {
+		for j := 1; j <= 8; j++ {
+			piece := b.matrix[j-1][rune(i)]
+			from := fmt.Sprintf("%s%d", string(rune(i)), j)
+
+			if piece != Empty() && piece.Color != color {
+				if piece.Sees(from, square, b) {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func (b *Board) Move(from, to string) {

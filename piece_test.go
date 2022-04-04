@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestStraightMovement(t *testing.T) {
 	straight := Straight{}
@@ -278,7 +280,7 @@ func TestCombinedIsAllowed(t *testing.T) {
 	if combined.IsAllowed("a1", "a6", White, NewBoard()) {
 		t.Error("Should not be able to move from a1 to a6")
 	}
-	if combined.IsAllowed("a6", "a2", White, NewBoard()) {
+	if combined.IsAllowed("a6", "a1", White, NewBoard()) {
 		t.Error("Should not be able to move from a6 to a1")
 	}
 	if combined.IsAllowed("a3", "a8", White, NewBoard()) {
@@ -310,4 +312,21 @@ func TestForwardFirstMove(t *testing.T) {
 		t.Error("Should be able to move from e7 to e5")
 	}
 }
+
+func TestKingCantMoveToThreatnedSquare(t *testing.T) {
+	king := King(Black)
+
+	board := NewBoard()
+	board.Move("e2", "e4")
+	board.Move("e7", "e5")
+	board.Move("d1", "g4")
+	board.Move("e8", "e7")
+
+	if king.Move("e7", "e6", board) {
+		t.Error("King should not be able to move into the Queen's sight")
+	}
+
+	if !king.Move("e7", "e8", board) {
+		t.Error("King should be able to move back e8")
+	}
 }

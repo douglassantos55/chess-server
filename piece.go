@@ -1,6 +1,8 @@
 package main
 
-import "math"
+import (
+	"math"
+)
 
 func Abs(num int) int {
 	if num < 0 {
@@ -54,7 +56,7 @@ func (s Straight) IsAllowed(from, to string, color Color, board *Board) bool {
 		for j := int(startCol); j <= int(endCol); j++ {
 			piece := board.matrix[i][rune(j)]
 
-			if piece != Empty() {
+			if (i != fromRow || j != int(fromCol)) && piece != Empty() {
 				if piece.Color == color || i < int(endRow) || j < int(endCol) {
 					return false
 				}
@@ -88,7 +90,7 @@ func (d Diagonal) IsAllowed(from, to string, color Color, board *Board) bool {
 
 	distance := Abs(destRow - fromRow)
 
-	for i := 0; i <= distance; i++ {
+	for i := 1; i <= distance; i++ {
 		piece := board.matrix[int(startRow)+i][rune(int(startCol)+i)]
 
 		if piece != Empty() {
@@ -155,10 +157,15 @@ type Piece struct {
 	Color    Color
 	Notation string
 	Movement Movement
+	king     bool
 }
 
 func (p *Piece) Move(from, to string, board *Board) bool {
-	return p.Movement.IsValid(from, to) && p.Movement.IsAllowed(from, to, p.Color, board)
+	return p.Sees(from, to, board) && (!p.king || !board.IsThreatned(to, p.Color))
+}
+
+func (p *Piece) Sees(from, square string, board *Board) bool {
+	return p.Movement.IsValid(from, square) && p.Movement.IsAllowed(from, square, p.Color, board)
 }
 
 func CreatePiece(name string, color Color, movement Movement) Piece {
@@ -166,6 +173,7 @@ func CreatePiece(name string, color Color, movement Movement) Piece {
 		Color:    color,
 		Notation: name,
 		Movement: movement,
+		king:     name == "K",
 	}
 }
 
