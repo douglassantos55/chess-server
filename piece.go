@@ -90,11 +90,11 @@ func (d Diagonal) IsAllowed(from, to string, color Color, board *Board) bool {
 
 	distance := Abs(destRow - fromRow)
 
-	for i := 1; i <= distance; i++ {
+	for i := 0; i <= distance; i++ {
 		piece := board.matrix[int(startRow)+i][rune(int(startCol)+i)]
 
 		if piece != Empty() {
-			if piece.Color == color || i != distance {
+			if (piece.Color != color && i != distance) || (piece.Color == color && int(startRow)+i != fromRow) {
 				return false
 			}
 		}

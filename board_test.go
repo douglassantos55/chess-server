@@ -137,3 +137,37 @@ func TestMovePiece(t *testing.T) {
 		t.Error("Should move Rook from a1 to a3")
 	}
 }
+
+func TestMoveOverOpponentsPieces(t *testing.T) {
+	board := NewBoard()
+
+	board.Move("d2", "d4")
+
+	if board.Square("d2") == Pawn(White) {
+		t.Errorf("Expected empty square on d2, got %v", board.Square("d2"))
+	}
+	if board.Square("d4") != Pawn(White) {
+		t.Errorf("Expected pawn on d4, got %v", board.Square("d4"))
+	}
+
+	board.Move("e7", "e5")
+
+	if board.Square("e7") == Pawn(Black) {
+		t.Errorf("Expected empty square on e7, got %v", board.Square("e7"))
+	}
+	if board.Square("e5") != Pawn(Black) {
+		t.Errorf("Expected pawn on e5, got %v", board.Square("e5"))
+	}
+
+	board.Move("f8", "c5")
+
+	if board.Square("c5") != Bishop(Black) {
+		t.Errorf("Expected bishop on c5, got %v", board.Square("c5"))
+	}
+
+	board.Move("c5", "e3")
+
+	if board.Square("e3") == Bishop(Black) {
+		t.Errorf("Should not jump over d4")
+	}
+}
