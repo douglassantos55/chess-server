@@ -17,12 +17,14 @@ const (
 type GameResult struct {
 	Winner *Player
 	Loser  *Player
+	Reason string
 }
 
 type GamePlayer struct {
 	Next   *GamePlayer
 	Player *Player
 	Color  Color
+	King   string
 
 	start time.Time
 	left  time.Duration
@@ -34,9 +36,16 @@ func NewGamePlayer(color Color, player *Player, duration time.Duration) *GamePla
 	timer := time.NewTimer(duration)
 	timer.Stop()
 
+	king := "e1"
+
+	if color == Black {
+		king = "e8"
+	}
+
 	return &GamePlayer{
 		Player: player,
 		Color:  color,
+		King:   king,
 
 		mutex: new(sync.Mutex),
 		left:  duration,
@@ -101,16 +110,19 @@ func NewGame(duration time.Duration, players []*Player) *Game {
 	go func() {
 		select {
 		case <-white.timer.C:
-			game.GameOver(white.Player)
+			game.GameOver(white.Player, "Timeout")
 		case <-black.timer.C:
-			game.GameOver(black.Player)
+			game.GameOver(black.Player, "Timeout")
 		}
 	}()
 
 	return game
 }
 
-func (g *Game) GameOver(loser *Player) {
+func (g *Game) GameOver(loser *Player, reason string) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
 	winner := g.Current.Player
 
 	if winner == loser {
@@ -120,15 +132,28 @@ func (g *Game) GameOver(loser *Player) {
 	g.Over <- GameResult{
 		Loser:  loser,
 		Winner: winner,
+		Reason: reason,
 	}
 }
 
-func (g *Game) EndTurn() {
+func (g *Game) EndTurn() bool {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
 	g.Current.StopTimer()
 	g.Current = g.Current.Next
+
+	king := g.board.Square(g.Current.King)
+
+	if g.board.IsThreatned(g.Current.King, king.Color) && !king.HasMoves(g.Current.King, g.board) {
+		g.Current.StopTimer()
+		g.Current.Next.StopTimer()
+		go g.GameOver(g.Current.Player, "Checkmate")
+
+		return false
+	}
+
+	return true
 }
 
 func (g *Game) StartTurn() {
@@ -144,8 +169,13 @@ func (g *Game) Move(from, to string) {
 	if piece.Color == g.Current.Color {
 		g.board.Move(from, to)
 
-		g.EndTurn()
-		g.StartTurn()
+		if piece.king {
+			g.Current.King = to
+		}
+
+		if g.EndTurn() {
+			g.StartTurn()
+		}
 	}
 }
 

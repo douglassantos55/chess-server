@@ -208,3 +208,57 @@ func TestBlackCannotMoveWhitePiece(t *testing.T) {
 		t.Error("Expected black's timer to run out")
 	}
 }
+
+func TestCheckmate(t *testing.T) {
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	game := NewGame(5*time.Second, []*Player{p1, p2})
+	go game.Start()
+
+	<-p1.Outgoing
+	<-p2.Outgoing
+
+	game.Move("f2", "f3") // white's turn
+	game.Move("e7", "e5") // black's turn
+	game.Move("g2", "g4") // white's turn
+	game.Move("d8", "h4") // black's turn
+
+	select {
+	case result := <-game.Over:
+		if result.Winner != p2 {
+			t.Error("Expected black to win")
+		}
+		if result.Reason != "Checkmate" {
+			t.Errorf("Expected black to win by checkmate, got %v", result.Reason)
+		}
+	case <-time.After(5 * time.Second):
+		t.Error("Expected black to win by checkmate, timeout instead")
+	}
+}
+
+func TestBlockCheckmate(t *testing.T) {
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	game := NewGame(time.Second, []*Player{p1, p2})
+	go game.Start()
+
+	<-p1.Outgoing
+	<-p2.Outgoing
+
+	game.Move("e2", "e4") // white's turn
+	game.Move("e7", "e6") // black's turn
+	game.Move("b2", "b3") // white's turn
+	game.Move("d8", "h4") // black's turn
+	game.Move("h2", "h3") // white's turn
+	game.Move("h4", "e4") // black's turn
+
+	select {
+	case <-time.After(500 * time.Millisecond):
+	case result := <-game.Over:
+		if result.Reason == "Checkmate" {
+			t.Error("Game should not end with checkmate, queen/bishop can block on e2")
+		}
+	}
+}

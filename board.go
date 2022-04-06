@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 func parseSquare(square string) (int, rune) {
@@ -14,11 +15,13 @@ func parseSquare(square string) (int, rune) {
 }
 
 type Board struct {
+	mutex  *sync.Mutex
 	matrix [8]map[rune]Piece
 }
 
 func NewBoard() *Board {
 	return &Board{
+		mutex: new(sync.Mutex),
 		matrix: [8]map[rune]Piece{
 			{
 				'a': Rook(White),
@@ -69,6 +72,9 @@ func NewBoard() *Board {
 }
 
 func (b *Board) Square(square string) Piece {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
 	row, col := parseSquare(square)
 	return b.matrix[row][col]
 }
