@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -329,4 +330,44 @@ func TestKingCantMoveToThreatnedSquare(t *testing.T) {
 	if !king.Move("e7", "e8", board) {
 		t.Error("King should be able to move back e8")
 	}
+}
+
+func TestSeesDiagonal(t *testing.T) {
+    board := NewBoard()
+
+	board.Move("e2", "e4") // white's turn
+	board.Move("c7", "c6") // black's turn
+	board.Move("d2", "d4") // white's turn
+	board.Move("d8", "a5") // black's turn
+
+    queen := board.Square("a5")
+
+    if !reflect.DeepEqual(queen, Queen(Black)) {
+        t.Errorf("Expected black queen on a5, got %v", queen)
+    }
+
+    if !queen.Sees("a5", "e1", board) {
+        t.Error("Expected black queen on a5 to see e1")
+    }
+}
+
+func TestSeesStraight(t *testing.T) {
+    board := NewBoard()
+
+	board.Move("e2", "e4") // white's turn
+	board.Move("e7", "e6") // black's turn
+	board.Move("b2", "b3") // white's turn
+	board.Move("d8", "h4") // black's turn
+	board.Move("h2", "h3") // white's turn
+	board.Move("h4", "e4") // black's turn
+
+    queen := board.Square("e4")
+
+    if !reflect.DeepEqual(queen, Queen(Black)) {
+        t.Errorf("Expected black queen on e4, got %v", queen)
+    }
+
+    if !queen.Sees("e4", "e1", board) {
+        t.Error("Expected black queen on e4 to see e1")
+    }
 }

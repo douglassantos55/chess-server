@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 )
 
 func Abs(num int) int {
@@ -76,18 +75,29 @@ func (s Straight) IsAllowed(from, to string, color Color, board *Board) bool {
 		return false
 	}
 
-	startRow := math.Min(float64(destRow), float64(fromRow))
-	endRow := math.Max(float64(destRow), float64(fromRow))
+	rowStep := 1
+	colStep := 1
 
-	startCol := math.Min(float64(destCol), float64(fromCol))
-	endCol := math.Max(float64(destCol), float64(fromCol))
+	if destRow < fromRow {
+		rowStep = -1
+	}
 
-	for i := int(startRow); i <= int(endRow); i++ {
-		for j := int(startCol); j <= int(endCol); j++ {
-			piece := board.matrix[i][rune(j)]
+	if destCol < fromCol {
+		colStep = -1
+	}
 
-			if (i != fromRow || j != int(fromCol)) && piece != Empty() {
-				if piece.Color == color || i < int(endRow) || j < int(endCol) {
+	rowDistance := int(float64(Abs(destRow - fromRow)))
+	colDistance := int(float64(Abs(int(destCol - fromCol))))
+
+	for i := 0; i <= rowDistance; i++ {
+		for j := 0; j <= colDistance; j++ {
+			r := fromRow + rowStep*i
+			c := int(fromCol) + colStep*j
+
+			piece := board.matrix[r][rune(c)]
+
+			if piece != Empty() {
+				if (i != 0 || j != 0) && (piece.Color == color || (i != rowDistance || j != colDistance)) {
 					return false
 				}
 			}

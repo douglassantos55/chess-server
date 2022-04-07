@@ -31,6 +31,8 @@ func TestAssignsColorsToPlayers(t *testing.T) {
 	if params1.Color == params2.Color {
 		t.Errorf("Both players have the same color %v", params1.Color)
 	}
+
+	<-game.Over
 }
 
 func TestPausesTimerOnEndTurn(t *testing.T) {
@@ -85,10 +87,10 @@ func TestTimerStops(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-	time.Sleep(250 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 	game.EndTurn()
 
-	if game.Current.Next.left >= 500*time.Millisecond {
+	if game.Current.Next.left < 200*time.Millisecond {
 		t.Errorf("Time left should be 250ms, got %v", game.Current.Next.left)
 	}
 }
@@ -219,9 +221,9 @@ func TestCheckmate(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-	game.Move("f2", "f3") // white's turn
-	game.Move("e7", "e5") // black's turn
-	game.Move("g2", "g4") // white's turn
+	game.Move("f2", "f3")    // white's turn
+	game.Move("e7", "e5")    // black's turn
+	game.Move("g2", "g4")    // white's turn
 	game.Move("d8", "h4") // black's turn
 
 	select {
@@ -247,18 +249,21 @@ func TestBlockCheckmate(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-	game.Move("e2", "e4") // white's turn
-	game.Move("e7", "e6") // black's turn
-	game.Move("b2", "b3") // white's turn
-	game.Move("d8", "h4") // black's turn
-	game.Move("h2", "h3") // white's turn
+	game.Move("e2", "e4")    // white's turn
+	game.Move("e7", "e6")    // black's turn
+	game.Move("b2", "b3")    // white's turn
+	game.Move("d8", "h4")    // black's turn
+	game.Move("h2", "h3")    // white's turn
 	game.Move("h4", "e4") // black's turn
 
 	select {
-	case <-time.After(500 * time.Millisecond):
 	case result := <-game.Over:
 		if result.Reason == "Checkmate" {
 			t.Error("Game should not end with checkmate, queen/bishop can block on e2")
 		}
+		if result.Winner != p1 {
+			t.Error("Expected white to win on time")
+		}
 	}
+
 }
