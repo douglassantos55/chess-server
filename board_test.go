@@ -171,3 +171,74 @@ func TestMoveOverOpponentsPieces(t *testing.T) {
 		t.Errorf("Should not jump over d4")
 	}
 }
+
+func TestForwardCaptureDiagonally(t *testing.T) {
+	board := NewBoard()
+
+	board.Move("e2", "e4")
+	board.Move("e7", "e5")
+	board.Move("d2", "d4")
+	board.Move("e5", "d4")
+
+	if board.Square("d4") != Pawn(Black) {
+		t.Error("Should capture d4 from e5")
+	}
+
+	board.Move("e4", "f5")
+	if board.Square("f5") != Empty() {
+		t.Error("Should not capture empty square")
+	}
+
+	board.Move("e4", "d5")
+	if board.Square("d5") != Empty() {
+		t.Error("Should not capture empty square")
+	}
+
+	board.Move("e4", "d3")
+	if board.Square("d3") != Empty() {
+		t.Error("Should not capture backwards")
+	}
+
+	board.Move("e4", "f3")
+	if board.Square("f3") != Empty() {
+		t.Error("Should not capture backwards")
+	}
+
+	board.Move("e4", "e5")
+	board.Move("e5", "d4")
+	if board.Square("d4") != Pawn(Black) {
+		t.Error("Should not capture backwards")
+	}
+
+	board.Move("d4", "e5")
+	if board.Square("e5") != Pawn(White) {
+		t.Error("Should not capture backwards")
+	}
+
+	board.Move("e5", "e6")
+	board.Move("e6", "d7")
+	if board.Square("d7") != Pawn(White) {
+		t.Error("Should capture d7 from e6")
+	}
+
+	board.Move("d7", "e8")
+	if board.Square("e8") != Pawn(White) {
+		t.Error("Should capture e8 from d7")
+	}
+
+	board.Move("d4", "d3")
+	board.Move("d3", "e2")
+	if board.Square("e2") != Empty() {
+		t.Error("Should not capture empty square")
+	}
+
+	board.Move("d3", "c2")
+	if board.Square("c2") != Pawn(Black) {
+		t.Error("Should capture c2 from d3")
+	}
+
+	board.Move("c2", "d1")
+	if board.Square("d1") != Pawn(Black) {
+		t.Error("Should capture d1 from c2")
+	}
+}

@@ -35,9 +35,22 @@ func (f Forward) HasMoves(from string, board *Board) bool {
 }
 
 func (f Forward) IsAllowed(from, to string, color Color, board *Board) bool {
-	if board.Square(to) == Empty() {
+	piece := board.Square(to)
+	dest, destErr := parseSquare(to)
+	source, sourceErr := parseSquare(from)
+
+	if destErr != nil || sourceErr != nil {
+		return false
+	}
+
+	colDistance := int(dest.col - source.col)
+	forward := colDistance == 0 && piece == Empty()
+	capture := Abs(colDistance) == Abs(f.squares) && (piece != Empty() && piece.Color != color)
+
+	if forward || capture {
 		f.moved = true
 	}
+
 	return f.moved
 }
 
@@ -50,9 +63,7 @@ func (f Forward) IsValid(from, to string) bool {
 	}
 
 	rowDistance := int(dest.row - source.row)
-	colDistance := Abs(int(dest.col - source.col))
-
-	return colDistance == 0 && (rowDistance == f.squares || (!f.moved && rowDistance == f.squares*2))
+	return rowDistance == f.squares || (!f.moved && rowDistance == f.squares*2)
 }
 
 type Straight struct {

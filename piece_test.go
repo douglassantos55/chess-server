@@ -108,9 +108,6 @@ func TestForwardMovement(t *testing.T) {
 	if forward.IsValid("a2", "a1") {
 		t.Error("Should not move backwards from a2 to a1")
 	}
-	if forward.IsValid("a2", "b3") {
-		t.Error("Should not move from a2 to b3")
-	}
 
 	downward := Forward{squares: -1}
 	if downward.IsValid("e5", "e7") {
@@ -250,6 +247,9 @@ func TestForwardIsAllowed(t *testing.T) {
 	}
 	if !forward.IsAllowed("a3", "a4", White, NewBoard()) {
 		t.Error("Should be able to move from a3 to a4")
+	}
+	if forward.IsAllowed("a2", "b3", White, NewBoard()) {
+		t.Error("Should not move from a2 to b3")
 	}
 }
 
