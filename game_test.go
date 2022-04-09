@@ -130,6 +130,8 @@ func TestWhiteMovePassesTurn(t *testing.T) {
 	<-p2.Outgoing
 
 	game.Move("e2", "e4")
+	game.EndTurn()
+	game.StartTurn()
 
 	select {
 	case result := <-game.Over:
@@ -151,10 +153,13 @@ func TestBlackMovePassesTurn(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-	game.EndTurn()
-	game.StartTurn()
+	game.EndTurn() // end white's turn
 
+	game.StartTurn() // start black's turn
 	game.Move("e7", "e5")
+	game.EndTurn()
+
+	game.StartTurn() // start white's turn
 
 	select {
 	case result := <-game.Over:
@@ -176,7 +181,9 @@ func TestWhiteCannotMoveBlackPiece(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-	game.Move("e7", "e5")
+	if game.Move("e7", "e5") {
+		t.Error("White should not be able to move black's pieces")
+	}
 
 	select {
 	case result := <-game.Over:
@@ -198,8 +205,14 @@ func TestBlackCannotMoveWhitePiece(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-	game.Move("e2", "e4") // white's turn
-	game.Move("d2", "d4") // black's turn
+	if game.Move("e2", "e4") { // white's turn
+		game.EndTurn()
+		game.StartTurn()
+	}
+
+	if game.Move("d2", "d4") { // black's turn
+		t.Error("Black should not be able to move white's pieces")
+	}
 
 	select {
 	case result := <-game.Over:
@@ -221,12 +234,23 @@ func TestCheckmate(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-	go func() {
-		game.Move("f2", "f3") // white's turn
-		game.Move("e7", "e5") // black's turn
-		game.Move("g2", "g4") // white's turn
-		game.Move("d8", "h4") // black's turn
-	}()
+	game.Move("f2", "f3") // white's turn
+	game.EndTurn()
+
+	game.Move("e7", "e5") // black's turn
+	game.EndTurn()
+
+	game.Move("g2", "g4") // white's turn
+	game.EndTurn()
+
+	game.Move("d8", "h4") // black's turn
+	game.EndTurn()
+
+	if !game.IsCheckmate() {
+		t.Error("Expected black to win by checkmate")
+	}
+
+	go game.Checkmate()
 
 	select {
 	case result := <-game.Over:
@@ -251,14 +275,34 @@ func TestBlockCheckmate(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-	go func() {
-		game.Move("e2", "e4") // white's turn
-		game.Move("e7", "e6") // black's turn
-		game.Move("b2", "b3") // white's turn
-		game.Move("d8", "h4") // black's turn
-		game.Move("h2", "h3") // white's turn
-		game.Move("h4", "e4") // black's turn
-	}()
+	game.Move("e2", "e4") // white's turn
+	game.EndTurn()
+
+	game.StartTurn()
+	game.Move("e7", "e6") // black's turn
+	game.EndTurn()
+
+	game.StartTurn()
+	game.Move("b2", "b3") // white's turn
+	game.EndTurn()
+
+	game.StartTurn()
+	game.Move("d8", "h4") // black's turn
+	game.EndTurn()
+
+	game.StartTurn()
+	game.Move("h2", "h3") // white's turn
+	game.EndTurn()
+
+	game.StartTurn()
+	game.Move("h4", "e4") // black's turn
+	game.EndTurn()
+
+	game.StartTurn() // white's turn
+
+	if game.IsCheckmate() {
+		t.Error("Should not be checkmate, can block on e2")
+	}
 
 	select {
 	case result := <-game.Over:
@@ -269,5 +313,4 @@ func TestBlockCheckmate(t *testing.T) {
 			t.Error("Expected black to win on time")
 		}
 	}
-
 }

@@ -136,31 +136,12 @@ func (g *Game) GameOver(loser *Player, reason string) {
 	}
 }
 
-func (g *Game) EndTurn() bool {
+func (g *Game) EndTurn() {
 	g.mutex.Lock()
+	defer g.mutex.Unlock()
 
 	g.Current.StopTimer()
 	g.Current = g.Current.Next
-
-	king := g.board.Square(g.Current.King)
-
-	hasMoves := king.HasMoves(g.Current.King, g.board)
-	threatened := g.board.IsThreatened(g.Current.King, king.Color)
-	canBlock := g.board.CanBlock(threatened, king.Color)
-
-	if len(threatened) != 0 && !hasMoves && !canBlock {
-		g.Current.StopTimer()
-		g.Current.Next.StopTimer()
-
-		g.mutex.Unlock()
-		g.GameOver(g.Current.Player, "Checkmate")
-
-		return false
-	} else {
-		g.mutex.Unlock()
-	}
-
-	return true
 }
 
 func (g *Game) StartTurn() {
@@ -170,8 +151,10 @@ func (g *Game) StartTurn() {
 	g.Current.StartTimer()
 }
 
-func (g *Game) Move(from, to string) {
+func (g *Game) Move(from, to string) bool {
 	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
 	piece := g.board.Square(from)
 
 	if piece.Color == g.Current.Color {
@@ -181,14 +164,33 @@ func (g *Game) Move(from, to string) {
 			g.Current.King = to
 		}
 
-		g.mutex.Unlock()
-
-		if g.EndTurn() {
-			g.StartTurn()
-		}
-	} else {
-		g.mutex.Unlock()
+		return true
 	}
+
+	return false
+}
+
+func (g *Game) IsCheckmate() bool {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	king := g.board.Square(g.Current.King)
+
+	hasMoves := king.HasMoves(g.Current.King, g.board)
+	threatened := g.board.IsThreatened(g.Current.King, king.Color)
+	canBlock := g.board.CanBlock(threatened, king.Color)
+
+	return len(threatened) > 0 && !hasMoves && !canBlock
+}
+
+func (g *Game) Checkmate() {
+	g.mutex.Lock()
+
+	g.Current.StopTimer()
+	g.Current.Next.StopTimer()
+
+	g.mutex.Unlock()
+	g.GameOver(g.Current.Player, "Checkmate")
 }
 
 // TODO: register game as a listener

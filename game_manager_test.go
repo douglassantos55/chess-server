@@ -99,6 +99,26 @@ func TestMovePieceHandler(t *testing.T) {
 	if game.board.Square("e4") != Pawn(White) {
 		t.Errorf("Expected e4 to have a pawn, got %v", game.board.Square("e4"))
 	}
+
+	assertWinner := func(result GameResult) {
+		if result.Reason != "Timeout" {
+			t.Errorf("Game should end with timeout")
+		}
+		if result.Winner != p1 {
+			t.Error("Expected white to win on time")
+		}
+	}
+
+	select {
+	case <-time.After(2 * time.Second):
+		t.Error("Expected game over response, got timeout")
+	case response := <-p1.Outgoing:
+		result := response.Payload.(GameResult)
+		assertWinner(result)
+	case response := <-p2.Outgoing:
+		result := response.Payload.(GameResult)
+		assertWinner(result)
+	}
 }
 
 func TestGameOver(t *testing.T) {

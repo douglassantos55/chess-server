@@ -83,7 +83,14 @@ func (g *GameManager) Process(event Message) {
 		data := event.Payload.(MovePiece)
 		game := g.FindGame(data.GameId)
 
-		game.Move(data.From, data.To)
+		if game.Move(data.From, data.To) {
+			if game.IsCheckmate() {
+				game.Checkmate()
+			} else {
+				game.EndTurn()
+				game.StartTurn()
+			}
+		}
 	case Resign:
 		gameId := event.Payload.(uuid.UUID)
 		game := g.FindGame(gameId)
