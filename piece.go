@@ -23,11 +23,15 @@ type Forward struct {
 }
 
 func (f Forward) HasMoves(from string, board *Board) bool {
-	row, col := parseSquare(from)
 	piece := board.Square(from)
-	to := fmt.Sprintf("%s%d", string(rune(col)), row+1)
+	square, err := parseSquare(from)
 
-	return f.IsAllowed(from, to, piece.Color, board) && !board.IsThreatned(to, piece.Color)
+	if err != nil {
+		return false
+	}
+
+	to := square.Up()
+	return f.IsAllowed(from, to.String(), piece.Color, board) && len(board.IsThreatened(to.String(), piece.Color)) == 0
 }
 
 func (f Forward) IsAllowed(from, to string, color Color, board *Board) bool {
@@ -38,11 +42,15 @@ func (f Forward) IsAllowed(from, to string, color Color, board *Board) bool {
 }
 
 func (f Forward) IsValid(from, to string) bool {
-	destRow, destCol := parseSquare(to)
-	fromRow, fromCol := parseSquare(from)
+	dest, destErr := parseSquare(to)
+	source, sourceErr := parseSquare(from)
 
-	rowDistance := int(destRow - fromRow)
-	colDistance := Abs(int(destCol) - int(fromCol))
+	if destErr != nil || sourceErr != nil {
+		return false
+	}
+
+	rowDistance := int(dest.row - source.row)
+	colDistance := Abs(int(dest.col - source.col))
 
 	return colDistance == 0 && (rowDistance == f.squares || (!f.moved && rowDistance == f.squares*2))
 }
@@ -52,54 +60,40 @@ type Straight struct {
 }
 
 func (s Straight) HasMoves(from string, board *Board) bool {
-	row, col := parseSquare(from)
+	square, err := parseSquare(from)
+
+	if err != nil {
+		return false
+	}
+
 	piece := board.Square(from)
 
-	up := fmt.Sprintf("%s%d", string(rune(col)), row+2)
-	down := fmt.Sprintf("%s%d", string(rune(col)), row)
-	left := fmt.Sprintf("%s%d", string(rune(col-1)), row+1)
-	right := fmt.Sprintf("%s%d", string(rune(col+1)), row+1)
+	up := square.Up().String()
+	down := square.Down().String()
+	left := square.Left().String()
+	right := square.Right().String()
 
-	return ((s.IsAllowed(from, up, piece.Color, board) && !board.IsThreatned(up, piece.Color)) ||
-		(s.IsAllowed(from, down, piece.Color, board) && !board.IsThreatned(down, piece.Color)) ||
-		(s.IsAllowed(from, left, piece.Color, board) && !board.IsThreatned(left, piece.Color)) ||
-		(s.IsAllowed(from, right, piece.Color, board) && !board.IsThreatned(right, piece.Color)))
+	return ((s.IsAllowed(from, up, piece.Color, board) && len(board.IsThreatened(up, piece.Color)) == 0) ||
+		(s.IsAllowed(from, down, piece.Color, board) && len(board.IsThreatened(down, piece.Color)) == 0) ||
+		(s.IsAllowed(from, left, piece.Color, board) && len(board.IsThreatened(left, piece.Color)) == 0) ||
+		(s.IsAllowed(from, right, piece.Color, board) && len(board.IsThreatened(right, piece.Color)) == 0))
 
 }
 
 func (s Straight) IsAllowed(from, to string, color Color, board *Board) bool {
-	destRow, destCol := parseSquare(to)
-	fromRow, fromCol := parseSquare(from)
+	moveRange, err := NewRange(from, to)
 
-	if destRow < 0 || destRow > 7 || destCol < 'a' || destCol > 'h' {
+	if err != nil {
 		return false
 	}
 
-	rowStep := 1
-	colStep := 1
+	for !moveRange.Done() {
+		cur := moveRange.Next()
+		piece := board.matrix[cur.row][cur.col]
 
-	if destRow < fromRow {
-		rowStep = -1
-	}
-
-	if destCol < fromCol {
-		colStep = -1
-	}
-
-	rowDistance := int(float64(Abs(destRow - fromRow)))
-	colDistance := int(float64(Abs(int(destCol - fromCol))))
-
-	for i := 0; i <= rowDistance; i++ {
-		for j := 0; j <= colDistance; j++ {
-			r := fromRow + rowStep*i
-			c := int(fromCol) + colStep*j
-
-			piece := board.matrix[r][rune(c)]
-
-			if piece != Empty() {
-				if (i != 0 || j != 0) && (piece.Color == color || (i != rowDistance || j != colDistance)) {
-					return false
-				}
+		if piece != Empty() {
+			if piece.Color == color || cur != moveRange.until {
+				return false
 			}
 		}
 	}
@@ -108,13 +102,18 @@ func (s Straight) IsAllowed(from, to string, color Color, board *Board) bool {
 }
 
 func (s Straight) IsValid(from, to string) bool {
-	destRow, destCol := parseSquare(to)
-	fromRow, fromCol := parseSquare(from)
+	dest, destErr := parseSquare(to)
+	source, sourceErr := parseSquare(from)
 
-	rowDistance := Abs(int(destRow - fromRow))
-	colDistance := Abs(int(destCol) - int(fromCol))
+	if destErr != nil || sourceErr != nil {
+		return false
+	}
 
-	return (destRow == fromRow || destCol == fromCol) && (s.squares == 0 || (rowDistance <= s.squares && colDistance <= s.squares))
+	rowDistance := Abs(dest.row - source.row)
+	colDistance := Abs(int(dest.col - source.col))
+
+	return (dest.row == source.row || dest.col == source.col) &&
+		(s.squares == 0 || (rowDistance <= s.squares && colDistance <= s.squares))
 }
 
 type Diagonal struct {
@@ -122,44 +121,38 @@ type Diagonal struct {
 }
 
 func (d Diagonal) HasMoves(from string, board *Board) bool {
-	row, col := parseSquare(from)
-	piece := board.Square(from)
+	source, err := parseSquare(from)
 
-	up := fmt.Sprintf("%s%d", string(rune(col+1)), row+2)
-	down := fmt.Sprintf("%s%d", string(rune(col-1)), row)
-	left := fmt.Sprintf("%s%d", string(rune(col-1)), row+2)
-	right := fmt.Sprintf("%s%d", string(rune(col+1)), row)
-
-	return ((d.IsAllowed(from, up, piece.Color, board) && !board.IsThreatned(up, piece.Color)) ||
-		(d.IsAllowed(from, down, piece.Color, board) && !board.IsThreatned(down, piece.Color)) ||
-		(d.IsAllowed(from, left, piece.Color, board) && !board.IsThreatned(left, piece.Color)) ||
-		(d.IsAllowed(from, right, piece.Color, board) && !board.IsThreatned(right, piece.Color)))
-}
-
-func (d Diagonal) IsAllowed(from, to string, color Color, board *Board) bool {
-	destRow, destCol := parseSquare(to)
-	fromRow, fromCol := parseSquare(from)
-
-	if destRow < 0 || destRow > 7 || destCol < 'a' || destCol > 'h' {
+	if err != nil {
 		return false
 	}
 
-	rowStep := 1
-	colStep := 1
+	piece := board.Square(from)
 
-	if destCol < fromCol {
-		colStep = -1
+	upRight := source.UpRight()
+	downRight := source.DownRight()
+	upLeft := source.UpLeft()
+	downLeft := source.DownLeft()
+
+	return ((d.IsAllowed(from, upRight.String(), piece.Color, board) && len(board.IsThreatened(upRight.String(), piece.Color)) == 0) ||
+		(d.IsAllowed(from, downRight.String(), piece.Color, board) && len(board.IsThreatened(downRight.String(), piece.Color)) == 0) ||
+		(d.IsAllowed(from, upLeft.String(), piece.Color, board) && len(board.IsThreatened(upLeft.String(), piece.Color)) == 0) ||
+		(d.IsAllowed(from, downLeft.String(), piece.Color, board) && len(board.IsThreatened(downLeft.String(), piece.Color)) == 0))
+}
+
+func (d Diagonal) IsAllowed(from, to string, color Color, board *Board) bool {
+	moveRange, err := NewRange(from, to)
+
+	if err != nil {
+		return false
 	}
-	if destRow < fromRow {
-		rowStep = -1
-	}
 
-	distance := Abs(destRow - fromRow)
+	for !moveRange.Done() {
+		cur := moveRange.Next()
+		piece := board.matrix[cur.row][cur.col]
 
-	for i := 1; i <= distance; i++ {
-		piece := board.matrix[int(fromRow)+rowStep*i][rune(int(fromCol)+colStep*i)]
 		if piece != Empty() {
-			if piece.Color == color || i != distance {
+			if piece.Color == color || cur != moveRange.until {
 				return false
 			}
 		}
@@ -169,11 +162,15 @@ func (d Diagonal) IsAllowed(from, to string, color Color, board *Board) bool {
 }
 
 func (d Diagonal) IsValid(from, to string) bool {
-	destRow, destCol := parseSquare(to)
-	fromRow, fromCol := parseSquare(from)
+	dest, destErr := parseSquare(to)
+	source, sourceErr := parseSquare(from)
 
-	rowDistance := Abs(destRow - fromRow)
-	colDistance := Abs(int(destCol) - int(fromCol))
+	if destErr != nil || sourceErr != nil {
+		return false
+	}
+
+	rowDistance := Abs(dest.row - source.row)
+	colDistance := Abs(int(dest.col - source.col))
 
 	return rowDistance == colDistance && (d.squares == 0 || (rowDistance <= d.squares && colDistance <= d.squares))
 }
@@ -181,13 +178,18 @@ func (d Diagonal) IsValid(from, to string) bool {
 type LMovement struct{}
 
 func (l LMovement) HasMoves(from string, board *Board) bool {
-	row, col := parseSquare(from)
+	source, err := parseSquare(from)
+
+	if err != nil {
+		return false
+	}
+
 	piece := board.Square(from)
 
-	up := fmt.Sprintf("%s%d", string(rune(col+1)), row+2)
-	down := fmt.Sprintf("%s%d", string(rune(col-1)), row-2)
-	left := fmt.Sprintf("%s%d", string(rune(col+1)), row-2)
-	right := fmt.Sprintf("%s%d", string(rune(col-1)), row+2)
+	up := fmt.Sprintf("%s%d", string(rune(source.col+1)), source.row+2)
+	down := fmt.Sprintf("%s%d", string(rune(source.col-1)), source.row-2)
+	left := fmt.Sprintf("%s%d", string(rune(source.col+1)), source.row-2)
+	right := fmt.Sprintf("%s%d", string(rune(source.col-1)), source.row+2)
 
 	return (l.IsAllowed(from, up, piece.Color, board) ||
 		l.IsAllowed(from, down, piece.Color, board) ||
@@ -201,11 +203,15 @@ func (l LMovement) IsAllowed(from, to string, color Color, board *Board) bool {
 }
 
 func (l LMovement) IsValid(from, to string) bool {
-	destRow, destCol := parseSquare(to)
-	fromRow, fromCol := parseSquare(from)
+	dest, destErr := parseSquare(to)
+	source, sourceErr := parseSquare(from)
 
-	rowDistance := Abs(destRow - fromRow)
-	colDistance := Abs(int(destCol) - int(fromCol))
+	if destErr != nil || sourceErr != nil {
+		return false
+	}
+
+	rowDistance := Abs(dest.row - source.row)
+	colDistance := Abs(int(dest.col - source.col))
 
 	return rowDistance == 2 && colDistance == 1
 }
@@ -255,7 +261,10 @@ func (p *Piece) HasMoves(from string, board *Board) bool {
 }
 
 func (p *Piece) Move(from, to string, board *Board) bool {
-	return p.Sees(from, to, board) && (!p.king || !board.IsThreatned(to, p.Color))
+	sees := p.Sees(from, to, board)
+	isAllowed := (!p.king || len(board.IsThreatened(to, p.Color)) == 0)
+
+	return sees && isAllowed
 }
 
 func (p *Piece) Sees(from, square string, board *Board) bool {

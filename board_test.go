@@ -6,25 +6,25 @@ import (
 )
 
 func TestParseSquare(t *testing.T) {
-	if _, c := parseSquare("a1"); c != 'a' {
-		t.Errorf("Expected 'a', got '%v'", c)
+	if s, _ := parseSquare("a1"); s.col != 'a' {
+		t.Errorf("Expected 'a', got '%v'", s)
 	}
-	if r, _ := parseSquare("a1"); r != 0 {
-		t.Errorf("Expected '0', got '%v'", r)
-	}
-
-	if _, c := parseSquare("d5"); c != 'd' {
-		t.Errorf("Expected 'd', got '%v'", c)
-	}
-	if r, _ := parseSquare("d5"); r != 4 {
-		t.Errorf("Expected '4', got '%v'", r)
+	if s, _ := parseSquare("a1"); s.row != 0 {
+		t.Errorf("Expected '0', got '%v'", s)
 	}
 
-	if _, c := parseSquare("h8"); c != 'h' {
-		t.Errorf("Expected 'h', got '%v'", c)
+	if s, _ := parseSquare("d5"); s.col != 'd' {
+		t.Errorf("Expected 'd', got '%v'", s)
 	}
-	if r, _ := parseSquare("h8"); r != 7 {
-		t.Errorf("Expected '7', got '%v'", r)
+	if s, _ := parseSquare("d5"); s.row != 4 {
+		t.Errorf("Expected '4', got '%v'", s)
+	}
+
+	if s, _ := parseSquare("h8"); s.col != 'h' {
+		t.Errorf("Expected 'h', got '%v'", s)
+	}
+	if s, _ := parseSquare("h8"); s.row != 7 {
+		t.Errorf("Expected '7', got '%v'", s)
 	}
 }
 

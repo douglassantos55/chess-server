@@ -138,19 +138,26 @@ func (g *Game) GameOver(loser *Player, reason string) {
 
 func (g *Game) EndTurn() bool {
 	g.mutex.Lock()
-	defer g.mutex.Unlock()
 
 	g.Current.StopTimer()
 	g.Current = g.Current.Next
 
 	king := g.board.Square(g.Current.King)
 
-	if g.board.IsThreatned(g.Current.King, king.Color) && !king.HasMoves(g.Current.King, g.board) {
+	hasMoves := king.HasMoves(g.Current.King, g.board)
+	threatened := g.board.IsThreatened(g.Current.King, king.Color)
+	canBlock := g.board.CanBlock(threatened, king.Color)
+
+	if len(threatened) != 0 && !hasMoves && !canBlock {
 		g.Current.StopTimer()
 		g.Current.Next.StopTimer()
-		go g.GameOver(g.Current.Player, "Checkmate")
+
+		g.mutex.Unlock()
+		g.GameOver(g.Current.Player, "Checkmate")
 
 		return false
+	} else {
+		g.mutex.Unlock()
 	}
 
 	return true
@@ -164,6 +171,7 @@ func (g *Game) StartTurn() {
 }
 
 func (g *Game) Move(from, to string) {
+	g.mutex.Lock()
 	piece := g.board.Square(from)
 
 	if piece.Color == g.Current.Color {
@@ -173,9 +181,13 @@ func (g *Game) Move(from, to string) {
 			g.Current.King = to
 		}
 
+		g.mutex.Unlock()
+
 		if g.EndTurn() {
 			g.StartTurn()
 		}
+	} else {
+		g.mutex.Unlock()
 	}
 }
 
@@ -187,7 +199,6 @@ func (g *Game) Start() {
 	players := make(map[*GamePlayer]*GamePlayer)
 
 	for player := g.Current; player != nil; player = player.Next {
-		// we've seen this dude, it's looping now, get out
 		if _, ok := players[player]; ok {
 			break
 		}

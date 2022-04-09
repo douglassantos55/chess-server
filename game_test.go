@@ -221,10 +221,12 @@ func TestCheckmate(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-	game.Move("f2", "f3")    // white's turn
-	game.Move("e7", "e5")    // black's turn
-	game.Move("g2", "g4")    // white's turn
-	game.Move("d8", "h4") // black's turn
+	go func() {
+		game.Move("f2", "f3") // white's turn
+		game.Move("e7", "e5") // black's turn
+		game.Move("g2", "g4") // white's turn
+		game.Move("d8", "h4") // black's turn
+	}()
 
 	select {
 	case result := <-game.Over:
@@ -249,20 +251,22 @@ func TestBlockCheckmate(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-	game.Move("e2", "e4")    // white's turn
-	game.Move("e7", "e6")    // black's turn
-	game.Move("b2", "b3")    // white's turn
-	game.Move("d8", "h4")    // black's turn
-	game.Move("h2", "h3")    // white's turn
-	game.Move("h4", "e4") // black's turn
+	go func() {
+		game.Move("e2", "e4") // white's turn
+		game.Move("e7", "e6") // black's turn
+		game.Move("b2", "b3") // white's turn
+		game.Move("d8", "h4") // black's turn
+		game.Move("h2", "h3") // white's turn
+		game.Move("h4", "e4") // black's turn
+	}()
 
 	select {
 	case result := <-game.Over:
 		if result.Reason == "Checkmate" {
 			t.Error("Game should not end with checkmate, queen/bishop can block on e2")
 		}
-		if result.Winner != p1 {
-			t.Error("Expected white to win on time")
+		if result.Winner != p2 {
+			t.Error("Expected black to win on time")
 		}
 	}
 

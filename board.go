@@ -1,17 +1,128 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"sync"
 )
 
-func parseSquare(square string) (int, rune) {
+func parseSquare(square string) (Square, error) {
 	coord := strings.Split(square, "")
-	x, _ := strconv.ParseInt(coord[1], 10, 64)
+	row, _ := strconv.ParseInt(coord[1], 10, 64)
+	col := []rune(coord[0])[0]
 
-	return int(x - 1), []rune(coord[0])[0]
+	if row < 1 || row > 8 || col < 'a' || col > 'h' {
+		return Square{}, errors.New("Invalid square")
+	}
+
+	return Square{
+		row: int(row - 1),
+		col: col,
+	}, nil
+}
+
+type Square struct {
+	col rune
+	row int
+}
+
+func (s Square) String() string {
+	return fmt.Sprintf("%s%d", string(s.col), s.row+1)
+}
+
+func (s Square) Up() Square {
+	return Square{
+		col: s.col,
+		row: s.row + 1,
+	}
+}
+func (s Square) Down() Square {
+	return Square{
+		col: s.col,
+		row: s.row - 1,
+	}
+}
+func (s Square) Left() Square {
+	return Square{
+		col: s.col - 1,
+		row: s.row,
+	}
+}
+func (s Square) Right() Square {
+	return Square{
+		col: s.col + 1,
+		row: s.row,
+	}
+}
+func (s Square) UpRight() Square {
+	return Square{
+		col: s.col + 1,
+		row: s.row + 1,
+	}
+}
+func (s Square) DownRight() Square {
+	return Square{
+		col: s.col + 1,
+		row: s.row - 1,
+	}
+}
+func (s Square) UpLeft() Square {
+	return Square{
+		col: s.col - 1,
+		row: s.row + 1,
+	}
+}
+func (s Square) DownLeft() Square {
+	return Square{
+		col: s.col - 1,
+		row: s.row - 1,
+	}
+}
+
+type Range struct {
+	from  Square
+	until Square
+	cur   Square
+}
+
+func NewRange(from, to string) (Range, error) {
+	dest, err := parseSquare(to)
+	if err != nil {
+		return Range{}, err
+	}
+
+	source, err := parseSquare(from)
+	if err != nil {
+		return Range{}, err
+	}
+
+	return Range{
+		until: dest,
+		from:  source,
+		cur:   source,
+	}, nil
+}
+
+func (r Range) Done() bool {
+	return r.cur == r.until
+}
+
+func (r *Range) Next() Square {
+	if r.from.row > r.until.row {
+		r.cur = r.cur.Down()
+	} else if r.from.row < r.until.row {
+		r.cur = r.cur.Up()
+	}
+
+	if r.from.col > r.until.col {
+		r.cur = r.cur.Left()
+	} else if r.from.col < r.until.col {
+		r.cur = r.cur.Right()
+	}
+
+	return r.cur
 }
 
 type Board struct {
@@ -75,11 +186,35 @@ func (b *Board) Square(square string) Piece {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	row, col := parseSquare(square)
-	return b.matrix[row][col]
+	s, _ := parseSquare(square)
+	return b.matrix[s.row][s.col]
 }
 
-func (b *Board) IsThreatned(square string, color Color) bool {
+func (b *Board) CanBlock(threats []Range, color Color) bool {
+	for _, threat := range threats {
+		for !threat.Done() {
+			for i := int('a'); i <= int('h'); i++ {
+				for j := 1; j <= 8; j++ {
+					piece := b.matrix[j-1][rune(i)]
+
+					if piece != Empty() && !piece.king && piece.Color == color {
+						from := fmt.Sprintf("%s%d", string(rune(i)), j)
+
+						if piece.Sees(from, threat.cur.String(), b) {
+							return true
+						}
+					}
+				}
+			}
+			threat.Next()
+		}
+	}
+	return false
+}
+
+func (b *Board) IsThreatened(square string, color Color) []Range {
+	ranges := []Range{}
+
 	for i := int('a'); i <= int('h'); i++ {
 		for j := 1; j <= 8; j++ {
 			piece := b.matrix[j-1][rune(i)]
@@ -87,22 +222,24 @@ func (b *Board) IsThreatned(square string, color Color) bool {
 
 			if piece != Empty() && piece.Color != color {
 				if piece.Sees(from, square, b) {
-					return true
+					threatRange, _ := NewRange(from, square)
+					ranges = append(ranges, threatRange)
 				}
 			}
 		}
 	}
-	return false
+
+	return ranges
 }
 
 func (b *Board) Move(from, to string) {
 	piece := b.Square(from)
 
 	if piece.Move(from, to, b) {
-		destRow, destCol := parseSquare(to)
-		sourceRow, sourceCol := parseSquare(from)
+		dest, _ := parseSquare(to)
+		source, _ := parseSquare(from)
 
-		b.matrix[destRow][destCol] = piece
-		b.matrix[sourceRow][sourceCol] = Empty()
+		b.matrix[dest.row][dest.col] = piece
+		b.matrix[source.row][source.col] = Empty()
 	}
 }

@@ -287,11 +287,11 @@ func TestCombinedIsAllowed(t *testing.T) {
 	if combined.IsAllowed("a3", "a8", White, NewBoard()) {
 		t.Error("Should not be able to move from a3 to a8")
 	}
-	if !combined.IsAllowed("a3", "f6", White, NewBoard()) {
-		t.Error("Should be able to move from a3 to f6")
+	if !combined.IsAllowed("a3", "d6", White, NewBoard()) {
+		t.Error("Should be able to move from a3 to d6")
 	}
-	if !combined.IsAllowed("f6", "a3", White, NewBoard()) {
-		t.Error("Should be able to move from f6 to a3")
+	if !combined.IsAllowed("d6", "a3", White, NewBoard()) {
+		t.Error("Should be able to move from d6 to a3")
 	}
 	if !combined.IsAllowed("c3", "g7", White, NewBoard()) {
 		t.Error("Should be able to move from c3 to g7")
@@ -333,26 +333,26 @@ func TestKingCantMoveToThreatnedSquare(t *testing.T) {
 }
 
 func TestSeesDiagonal(t *testing.T) {
-    board := NewBoard()
+	board := NewBoard()
 
 	board.Move("e2", "e4") // white's turn
 	board.Move("c7", "c6") // black's turn
 	board.Move("d2", "d4") // white's turn
 	board.Move("d8", "a5") // black's turn
 
-    queen := board.Square("a5")
+	queen := board.Square("a5")
 
-    if !reflect.DeepEqual(queen, Queen(Black)) {
-        t.Errorf("Expected black queen on a5, got %v", queen)
-    }
+	if !reflect.DeepEqual(queen, Queen(Black)) {
+		t.Errorf("Expected black queen on a5, got %v", queen)
+	}
 
-    if !queen.Sees("a5", "e1", board) {
-        t.Error("Expected black queen on a5 to see e1")
-    }
+	if !queen.Sees("a5", "e1", board) {
+		t.Error("Expected black queen on a5 to see e1")
+	}
 }
 
 func TestSeesStraight(t *testing.T) {
-    board := NewBoard()
+	board := NewBoard()
 
 	board.Move("e2", "e4") // white's turn
 	board.Move("e7", "e6") // black's turn
@@ -361,13 +361,13 @@ func TestSeesStraight(t *testing.T) {
 	board.Move("h2", "h3") // white's turn
 	board.Move("h4", "e4") // black's turn
 
-    queen := board.Square("e4")
+	queen := board.Square("e4")
 
-    if !reflect.DeepEqual(queen, Queen(Black)) {
-        t.Errorf("Expected black queen on e4, got %v", queen)
-    }
+	if !reflect.DeepEqual(queen, Queen(Black)) {
+		t.Errorf("Expected black queen on e4, got %v", queen)
+	}
 
-    if !queen.Sees("e4", "e1", board) {
-        t.Error("Expected black queen on e4 to see e1")
-    }
+	if !queen.Sees("e4", "e1", board) {
+		t.Error("Expected black queen on e4 to see e1")
+	}
 }
