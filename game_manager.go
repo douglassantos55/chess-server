@@ -89,6 +89,11 @@ func (g *GameManager) Process(event Message) {
 			} else {
 				game.EndTurn()
 				game.StartTurn()
+
+				game.Current.Send(Response{
+					Type:    StartTurn,
+					Payload: game.Current.left,
+				})
 			}
 		}
 	case Resign:

@@ -79,19 +79,18 @@ func TestMovePieceHandler(t *testing.T) {
 	<-p2.Outgoing
 
 	params := res.Payload.(GameParams)
+	game := gameManager.FindGame(params.GameId)
 
-	<-wait(func() {
-		gameManager.Process(Message{
-			Type: Move,
-			Payload: MovePiece{
-				From:   "e2",
-				To:     "e4",
-				GameId: params.GameId,
-			},
-		})
+	go gameManager.Process(Message{
+		Type: Move,
+		Payload: MovePiece{
+			From:   "e2",
+			To:     "e4",
+			GameId: game.Id,
+		},
 	})
 
-	game := gameManager.FindGame(params.GameId)
+	<-p2.Outgoing
 
 	if game.board.Square("e2") != Empty() {
 		t.Errorf("Expected e2 to be empty, got %v", game.board.Square("e2"))
@@ -100,12 +99,30 @@ func TestMovePieceHandler(t *testing.T) {
 		t.Errorf("Expected e4 to have a pawn, got %v", game.board.Square("e4"))
 	}
 
+	go gameManager.Process(Message{
+		Type: Move,
+		Payload: MovePiece{
+			From:   "e7",
+			To:     "e5",
+			GameId: game.Id,
+		},
+	})
+
+	<-p1.Outgoing
+
+	if game.board.Square("e7") != Empty() {
+		t.Errorf("Expected e7 to be empty, got %v", game.board.Square("e7"))
+	}
+	if game.board.Square("e5") != Pawn(Black) {
+		t.Errorf("Expected e5 to have a pawn, got %v", game.board.Square("e5"))
+	}
+
 	assertWinner := func(result GameResult) {
 		if result.Reason != "Timeout" {
 			t.Errorf("Game should end with timeout")
 		}
-		if result.Winner != p1 {
-			t.Error("Expected white to win on time")
+		if result.Winner != p2 {
+			t.Error("Expected black to win on time")
 		}
 	}
 
@@ -118,6 +135,45 @@ func TestMovePieceHandler(t *testing.T) {
 	case response := <-p2.Outgoing:
 		result := response.Payload.(GameResult)
 		assertWinner(result)
+	}
+}
+
+func TestSendsMoveEventToPlayer(t *testing.T) {
+	manager := NewGameManager()
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go manager.Process(Message{
+		Type:    CreateGame,
+		Payload: []*Player{p1, p2},
+	})
+
+	res := <-p1.Outgoing
+	<-p2.Outgoing
+
+	params := res.Payload.(GameParams)
+
+	go manager.Process(Message{
+		Type: Move,
+		Payload: MovePiece{
+			From:   "e2",
+			To:     "e4",
+			GameId: params.GameId,
+		},
+	})
+
+	select {
+	case <-time.After(time.Second):
+		t.Error("Expected response, got timeout")
+	case response := <-p2.Outgoing:
+		if response.Type != StartTurn {
+			t.Errorf("Expected StartTurn, got %v", response.Type)
+		}
+
+		if timer := response.Payload.(time.Duration); timer < time.Second {
+			t.Errorf("Expected 1s, got %v", timer)
+		}
 	}
 }
 
