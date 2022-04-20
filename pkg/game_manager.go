@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"sync"
@@ -92,7 +92,10 @@ func (g *GameManager) Process(event Message) {
 
 				game.Current.Send(Response{
 					Type:    StartTurn,
-					Payload: game.Current.left,
+					Payload: map[string]interface{}{
+                        "timeLeft": game.Current.left,
+                        "move": data,
+                    },
 				})
 			}
 		}

@@ -1,4 +1,4 @@
-package main
+package pkg
 
 import (
 	"context"
@@ -36,7 +36,11 @@ func (s *Server) Listen(addr string) {
 }
 
 func (s *Server) HandleRequest(w http.ResponseWriter, r *http.Request) {
-	upgrader := websocket.Upgrader{}
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
 	socket, err := upgrader.Upgrade(w, r, nil)
 
 	Dispatcher := make(chan Message)
