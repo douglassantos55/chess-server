@@ -61,3 +61,9 @@ type MoveResponse struct {
 	Time   time.Duration `json:"time"`
 	GameId uuid.UUID     `json:"game_id"`
 }
+
+type GameOverResponse struct {
+	Reason string    `json:"reason"`
+	GameId uuid.UUID `json:"game_id"`
+	Winner bool      `json:"winner"`
+}

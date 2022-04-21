@@ -32,13 +32,21 @@ func (g *GameManager) CreateGame(players []*Player) *Game {
 		g.RemoveGame(game.Id)
 
 		result.Winner.Send(Response{
-			Type:    GameOver,
-			Payload: result,
+			Type: GameOver,
+			Payload: GameOverResponse{
+				Reason: result.Reason,
+				Winner: true,
+				GameId: game.Id,
+			},
 		})
 
 		result.Loser.Send(Response{
-			Type:    GameOver,
-			Payload: result,
+			Type: GameOver,
+			Payload: GameOverResponse{
+				Reason: result.Reason,
+				Winner: false,
+				GameId: game.Id,
+			},
 		})
 	}()
 

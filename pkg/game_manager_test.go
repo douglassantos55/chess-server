@@ -117,24 +117,25 @@ func TestMovePieceHandler(t *testing.T) {
 		t.Errorf("Expected e5 to have a pawn, got %v", game.board.Square("e5"))
 	}
 
-	assertWinner := func(result GameResult) {
-		if result.Reason != "Timeout" {
-			t.Errorf("Game should end with timeout")
-		}
-		if result.Winner != p2 {
-			t.Error("Expected black to win on time")
-		}
-	}
-
 	select {
 	case <-time.After(2 * time.Second):
 		t.Error("Expected game over response, got timeout")
 	case response := <-p1.Outgoing:
-		result := response.Payload.(GameResult)
-		assertWinner(result)
+		result := response.Payload.(GameOverResponse)
+		if result.Reason != "Timeout" {
+			t.Errorf("Game should end with timeout")
+		}
+		if result.Winner {
+			t.Error("Expected black to win on time")
+		}
 	case response := <-p2.Outgoing:
-		result := response.Payload.(GameResult)
-		assertWinner(result)
+		result := response.Payload.(GameOverResponse)
+		if result.Reason != "Timeout" {
+			t.Errorf("Game should end with timeout")
+		}
+		if !result.Winner {
+			t.Error("Expected black to win on time")
+		}
 	}
 }
 
@@ -196,13 +197,13 @@ func TestGameOver(t *testing.T) {
 
 	select {
 	case res := <-p1.Outgoing:
-		result := res.Payload.(GameResult)
-		if result.Winner != p2 {
+		result := res.Payload.(GameOverResponse)
+		if result.Winner {
 			t.Error("Expected black to win on time")
 		}
 	case res := <-p2.Outgoing:
-		result := res.Payload.(GameResult)
-		if result.Winner != p2 {
+		result := res.Payload.(GameOverResponse)
+		if !result.Winner {
 			t.Error("Expected black to win on time")
 		}
 	}
@@ -236,13 +237,13 @@ func TestWhiteResign(t *testing.T) {
 
 	select {
 	case res := <-p1.Outgoing:
-		result := res.Payload.(GameResult)
-		if result.Winner != p2 {
+		result := res.Payload.(GameOverResponse)
+		if result.Winner {
 			t.Error("Expected black to win by resignation")
 		}
 	case res := <-p2.Outgoing:
-		result := res.Payload.(GameResult)
-		if result.Winner != p2 {
+		result := res.Payload.(GameOverResponse)
+		if !result.Winner {
 			t.Error("Expected black to win by resignation")
 		}
 	case <-time.After(time.Second):
@@ -278,13 +279,13 @@ func TestBlackResign(t *testing.T) {
 
 	select {
 	case res := <-p1.Outgoing:
-		result := res.Payload.(GameResult)
-		if result.Winner != p1 {
+		result := res.Payload.(GameOverResponse)
+		if !result.Winner {
 			t.Error("Expected white to win by resignation")
 		}
 	case res := <-p2.Outgoing:
-		result := res.Payload.(GameResult)
-		if result.Winner != p1 {
+		result := res.Payload.(GameOverResponse)
+		if result.Winner {
 			t.Error("Expected white to win by resignation")
 		}
 	case <-time.After(time.Second):
@@ -319,13 +320,13 @@ func TestBlackDisconnectEndsGame(t *testing.T) {
 
 	select {
 	case res := <-p1.Outgoing:
-		result := res.Payload.(GameResult)
-		if result.Winner != p1 {
+		result := res.Payload.(GameOverResponse)
+		if !result.Winner {
 			t.Error("Expected white to win by resignation")
 		}
 	case res := <-p2.Outgoing:
-		result := res.Payload.(GameResult)
-		if result.Winner != p1 {
+		result := res.Payload.(GameOverResponse)
+		if result.Winner {
 			t.Error("Expected white to win by resignation")
 		}
 	case <-time.After(time.Second):
@@ -360,13 +361,13 @@ func TestWhiteDisconnectEndsGame(t *testing.T) {
 
 	select {
 	case res := <-p1.Outgoing:
-		result := res.Payload.(GameResult)
-		if result.Winner != p2 {
+		result := res.Payload.(GameOverResponse)
+		if result.Winner {
 			t.Error("Expected black to win by resignation")
 		}
 	case res := <-p2.Outgoing:
-		result := res.Payload.(GameResult)
-		if result.Winner != p2 {
+		result := res.Payload.(GameOverResponse)
+		if !result.Winner {
 			t.Error("Expected black to win by resignation")
 		}
 	case <-time.After(time.Second):
