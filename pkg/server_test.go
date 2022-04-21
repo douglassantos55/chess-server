@@ -28,7 +28,6 @@ func TestHandlers(t *testing.T) {
 	server := StartServer([]Handler{
 		testHandler,
 	})
-
 	defer server.Shutdown()
 
 	client, _ := NewClient()

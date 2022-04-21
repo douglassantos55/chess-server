@@ -14,6 +14,8 @@ type Handler interface {
 }
 
 type Server struct {
+	closed   chan bool
+	reading  chan bool
 	server   *http.Server
 	handlers []Handler
 }
@@ -22,6 +24,7 @@ func NewServer(handlers []Handler) *Server {
 	return &Server{
 		handlers: handlers,
 		server:   &http.Server{},
+		closed:   make(chan bool),
 	}
 }
 
@@ -32,7 +35,12 @@ func (s *Server) Shutdown() {
 func (s *Server) Listen(addr string) {
 	s.server.Addr = addr
 	s.server.Handler = http.HandlerFunc(s.HandleRequest)
-	s.server.ListenAndServe()
+	err := s.server.ListenAndServe()
+
+	if err == http.ErrServerClosed {
+		s.closed <- true
+		s.reading <- false
+	}
 }
 
 func (s *Server) HandleRequest(w http.ResponseWriter, r *http.Request) {
@@ -51,29 +59,34 @@ func (s *Server) HandleRequest(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		for {
-			message, ok := <-player.Incoming
-			message.Player = player
+			select {
+			case <-s.reading:
+				return
+			case message, ok := <-player.Incoming:
+				message.Player = player
 
-			if !ok { // disconnected
-				break
+				if !ok { // disconnected
+					break
+				}
+
+				Dispatcher <- message
 			}
-
-			Dispatcher <- message
 		}
 	}()
 
 	go func() {
-		defer close(Dispatcher)
-
 		for {
-			event, ok := <-Dispatcher
+			select {
+			case <-s.closed:
+				return
+			case event, ok := <-Dispatcher:
+				if !ok {
+					break
+				}
 
-			if !ok {
-				break
-			}
-
-			for _, handler := range s.handlers {
-				go handler.Process(event)
+				for _, handler := range s.handlers {
+					go handler.Process(event)
+				}
 			}
 		}
 	}()
