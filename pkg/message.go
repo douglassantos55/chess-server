@@ -1,6 +1,10 @@
 package pkg
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type MessageType string
 type ResponseType string
@@ -28,25 +32,32 @@ const (
 )
 
 type Message struct {
-	Type    MessageType
-	Text    string
-	Player  *Player
-	Payload interface{}
+	Type    MessageType `json:"type"`
+	Text    string      `json:"text"`
+	Player  *Player     `json:"player"`
+	Payload interface{} `json:"payload"`
 }
 
 type Response struct {
-	Type    ResponseType
-	Text    string
-	Payload interface{}
+	Type    ResponseType `json:"type"`
+	Text    string       `json:"text"`
+	Payload interface{}  `json:"payload"`
 }
 
 type GameParams struct {
-	GameId uuid.UUID
-	Color  Color
+	GameId uuid.UUID `json:"game_id"`
+	Color  Color     `json:"color"`
 }
 
 type MovePiece struct {
-	From   string
-	To     string
-	GameId uuid.UUID
+	From   string    `json:"from"`
+	To     string    `json:"to"`
+	GameId uuid.UUID `json:"game_id"`
+}
+
+type MoveResponse struct {
+	From   string        `json:"from"`
+	To     string        `json:"to"`
+	Time   time.Duration `json:"time"`
+	GameId uuid.UUID     `json:"game_id"`
 }

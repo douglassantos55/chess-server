@@ -36,6 +36,5 @@ func (q *QueueManager) Process(event Message) {
 		}
 	case Dequeue, Disconnected:
 		q.queue.Remove(event.Player)
-
 	}
 }

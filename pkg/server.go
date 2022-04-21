@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var Dispatcher chan Message
+var Dispatcher chan Message = make(chan Message)
 
 type Handler interface {
 	Process(event Message)
@@ -42,8 +42,6 @@ func (s *Server) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	socket, err := upgrader.Upgrade(w, r, nil)
-
-	Dispatcher := make(chan Message)
 
 	if err != nil {
 		return

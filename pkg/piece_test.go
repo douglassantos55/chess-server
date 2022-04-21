@@ -332,26 +332,6 @@ func TestKingCantMoveToThreatnedSquare(t *testing.T) {
 	}
 }
 
-func TestKingCantCaptureDefendedPiece(t *testing.T) {
-	king := King(Black)
-
-	board := NewBoard()
-	board.Move("e2", "e4")
-	board.Move("e7", "e5")
-	board.Move("e8", "f4")
-	board.Move("b1", "c3")
-
-	if king.Move("f4", "e4", board) {
-		t.Error("King should not be able to capture defended piece")
-	}
-
-	board.Move("c3", "b1")
-
-	if !king.Move("f4", "e4", board) {
-		t.Error("King should be able to capture undefended piece")
-	}
-}
-
 func TestSeesDiagonal(t *testing.T) {
 	board := NewBoard()
 

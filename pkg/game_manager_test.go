@@ -171,8 +171,9 @@ func TestSendsMoveEventToPlayer(t *testing.T) {
 			t.Errorf("Expected StartTurn, got %v", response.Type)
 		}
 
-		if timer := response.Payload.(time.Duration); timer < time.Second {
-			t.Errorf("Expected 1s, got %v", timer)
+		payload := response.Payload.(MoveResponse)
+		if payload.Time < time.Second {
+			t.Errorf("Expected 1s, got %v", payload.Time)
 		}
 	}
 }

@@ -57,11 +57,13 @@ func (m *MatchMaker) CreateMatch(players []*Player) {
 		case requeue := <-match.Canceled:
 			m.RemoveMatch(match.Id)
 
-			for _, player := range requeue {
+			for _, player := range match.Players {
 				player.Send(Response{
 					Type: MatchCanceled,
 				})
+			}
 
+			for _, player := range requeue {
 				Dispatcher <- Message{
 					Type:   QueueUp,
 					Player: player,
@@ -107,11 +109,11 @@ func (m *MatchMaker) Process(event Message) {
 		m.CreateMatch(players)
 
 	case MatchConfirmed:
-		matchId := event.Payload.(uuid.UUID)
+		matchId, _ := uuid.Parse(event.Payload.(string))
 		m.ConfirmMatch(matchId, event.Player)
 
 	case MatchDeclined:
-		matchId := event.Payload.(uuid.UUID)
+		matchId, _ := uuid.Parse(event.Payload.(string))
 		m.CancelMatch(matchId)
 
 	case Disconnected:

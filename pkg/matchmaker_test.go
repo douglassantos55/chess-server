@@ -127,22 +127,25 @@ func TestRequeuesConfirmedAfterTimeout(t *testing.T) {
 		Payload: []*Player{p1, p2},
 	})
 
-	var response Response
+	var response1 Response
+	var response2 Response
 
-	select {
-	case res := <-p1.Outgoing:
-		response = res
-	case res := <-p2.Outgoing:
-		response = res
-	case <-time.After(time.Second):
-		t.Error("Expected response, got timeout")
+	for response1.Type == "" || response2.Type == "" {
+		select {
+		case res := <-p1.Outgoing:
+			response1 = res
+		case res := <-p2.Outgoing:
+			response2 = res
+		case <-time.After(time.Second):
+			t.Error("Expected response, got timeout")
+		}
 	}
 
-	matchId := response.Payload.(uuid.UUID)
+	matchId := response1.Payload.(uuid.UUID)
 
 	go matchmaker.Process(Message{
 		Player:  p1,
-		Payload: matchId,
+		Payload: matchId.String(),
 		Type:    MatchConfirmed,
 	})
 
@@ -153,7 +156,9 @@ func TestRequeuesConfirmedAfterTimeout(t *testing.T) {
 
 	time.Sleep(200 * time.Millisecond)
 
+	// match canceled response
 	<-p1.Outgoing
+	<-p2.Outgoing
 
 	select {
 	case queueUp := <-Dispatcher:
@@ -200,7 +205,7 @@ func TestDispatchesGameStart(t *testing.T) {
 
 	go matchmaker.Process(Message{
 		Player:  p1,
-		Payload: matchId,
+		Payload: matchId.String(),
 		Type:    MatchConfirmed,
 	})
 
@@ -211,7 +216,7 @@ func TestDispatchesGameStart(t *testing.T) {
 
 	go matchmaker.Process(Message{
 		Player:  p2,
-		Payload: matchId,
+		Payload: matchId.String(),
 		Type:    MatchConfirmed,
 	})
 
@@ -251,14 +256,23 @@ func TestRefuseMatch(t *testing.T) {
 		Payload: []*Player{p1, p2},
 	})
 
-	response := <-p1.Outgoing
-	<-p2.Outgoing
+	var response1 Response
+	var response2 Response
 
-	matchId := response.Payload.(uuid.UUID)
+	for response1.Type == "" || response2.Type == "" {
+		select {
+		case response := <-p1.Outgoing:
+			response1 = response
+		case response := <-p2.Outgoing:
+			response2 = response
+		}
+	}
+
+	matchId := response1.Payload.(uuid.UUID)
 
 	go matchmaker.Process(Message{
 		Player:  p1,
-		Payload: matchId,
+		Payload: matchId.String(),
 		Type:    MatchConfirmed,
 	})
 
@@ -269,7 +283,7 @@ func TestRefuseMatch(t *testing.T) {
 
 	go matchmaker.Process(Message{
 		Player:  p2,
-		Payload: matchId,
+		Payload: matchId.String(),
 		Type:    MatchDeclined,
 	})
 
@@ -277,6 +291,8 @@ func TestRefuseMatch(t *testing.T) {
 	if notification.Type != MatchCanceled {
 		t.Errorf("Expected match canceled response, got %v", notification.Type)
 	}
+
+	<-p2.Outgoing
 
 	select {
 	case queueUp := <-Dispatcher:
@@ -303,14 +319,23 @@ func TestDisconnect(t *testing.T) {
 		Payload: []*Player{p1, p2},
 	})
 
-	response := <-p1.Outgoing
-	<-p2.Outgoing
+	var response1 Response
+	var response2 Response
 
-	matchId := response.Payload.(uuid.UUID)
+	for response1.Type == "" || response2.Type == "" {
+		select {
+		case response := <-p1.Outgoing:
+			response1 = response
+		case response := <-p2.Outgoing:
+			response2 = response
+		}
+	}
+
+	matchId := response1.Payload.(uuid.UUID)
 
 	go matchmaker.Process(Message{
 		Player:  p1,
-		Payload: matchId,
+		Payload: matchId.String(),
 		Type:    MatchConfirmed,
 	})
 
@@ -332,6 +357,8 @@ func TestDisconnect(t *testing.T) {
 	if matchmaker.HasMatches() {
 		t.Error("Expected match to be canceled")
 	}
+
+	<-p2.Outgoing
 
 	select {
 	case queueUp := <-Dispatcher:

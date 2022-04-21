@@ -91,11 +91,13 @@ func (g *GameManager) Process(event Message) {
 				game.StartTurn()
 
 				game.Current.Send(Response{
-					Type:    StartTurn,
-					Payload: map[string]interface{}{
-                        "timeLeft": game.Current.left,
-                        "move": data,
-                    },
+					Type: StartTurn,
+					Payload: MoveResponse{
+						From:   data.From,
+						To:     data.From,
+						Time:   game.Current.left,
+						GameId: data.GameId,
+					},
 				})
 			}
 		}
