@@ -69,6 +69,6 @@ type GameOverResponse struct {
 }
 
 type QueueUpParams struct {
-	Duration  string
-	Increment string
+	Duration  string `json:"duration"`
+	Increment string `json:"increment"`
 }

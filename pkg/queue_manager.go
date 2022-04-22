@@ -2,6 +2,8 @@ package pkg
 
 import (
 	"sync"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 const MAX_PLAYERS = 2
@@ -22,7 +24,9 @@ func (q *QueueManager) GetQueue(event Message) *Queue {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	params := event.Payload.(QueueUpParams)
+	var params QueueUpParams
+	mapstructure.Decode(event.Payload.(map[string]interface{}), &params)
+
 	queue := q.queue[params]
 
 	if queue == nil {

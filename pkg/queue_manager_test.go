@@ -3,6 +3,8 @@ package pkg
 import (
 	"testing"
 	"time"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 func TestReturnsResponse(t *testing.T) {
@@ -12,9 +14,9 @@ func TestReturnsResponse(t *testing.T) {
 	go queueManager.Process(Message{
 		Type:   QueueUp,
 		Player: player,
-		Payload: QueueUpParams{
-			Duration:  "1m",
-			Increment: "0s",
+		Payload: map[string]interface{}{
+			"duration":  "1m",
+			"increment": "0s",
 		},
 	})
 
@@ -50,14 +52,14 @@ func TestAddsToQueue(t *testing.T) {
 
 	queueManager := NewQueueManager()
 
-	payload1 := QueueUpParams{
-		Duration:  "1m",
-		Increment: "0s",
+	payload1 := map[string]interface{}{
+		"duration":  "1m",
+		"increment": "0s",
 	}
 
-	payload2 := QueueUpParams{
-		Duration:  "10m",
-		Increment: "0s",
+	payload2 := map[string]interface{}{
+		"duration":  "10m",
+		"increment": "0s",
 	}
 
 	go queueManager.Process(Message{
@@ -76,11 +78,17 @@ func TestAddsToQueue(t *testing.T) {
 
 	<-player2.Outgoing
 
-	if queueManager.queue[payload1].Length() != 1 {
+	var params1 QueueUpParams
+	mapstructure.Decode(payload1, &params1)
+
+	if queueManager.queue[params1].Length() != 1 {
 		t.Error("Expected 1 player on 1m+0s queue")
 	}
 
-	if queueManager.queue[payload2].Length() != 1 {
+	var params2 QueueUpParams
+	mapstructure.Decode(payload2, &params2)
+
+	if queueManager.queue[params2].Length() != 1 {
 		t.Error("Expected 1 player on 10m+0s queue")
 	}
 }
@@ -91,9 +99,9 @@ func TestCancel(t *testing.T) {
 
 	queueManager := NewQueueManager()
 
-	payload1 := QueueUpParams{
-		Duration:  "1m",
-		Increment: "0s",
+	payload1 := map[string]interface{}{
+		"duration":  "1m",
+		"increment": "0s",
 	}
 
 	go queueManager.Process(Message{
@@ -104,9 +112,9 @@ func TestCancel(t *testing.T) {
 
 	<-p1.Outgoing
 
-	payload2 := QueueUpParams{
-		Duration:  "10m",
-		Increment: "0s",
+	payload2 := map[string]interface{}{
+		"duration":  "10m",
+		"increment": "0s",
 	}
 
 	go queueManager.Process(Message{
@@ -126,12 +134,18 @@ func TestCancel(t *testing.T) {
 
 	queue := queueManager.queue
 
-	if queue[payload1].Length() != 0 {
-		t.Errorf("Expected empty queue, got %v", queue[payload1].Length())
+	var params1 QueueUpParams
+	mapstructure.Decode(payload1, &params1)
+
+	if queue[params1].Length() != 0 {
+		t.Errorf("Expected empty queue, got %v", queue[params1].Length())
 	}
 
-	if queue[payload2].Length() == 0 {
-		t.Errorf("Expected 1 player in queue, got %v", queue[payload2].Length())
+	var params2 QueueUpParams
+	mapstructure.Decode(payload2, &params2)
+
+	if queue[params2].Length() == 0 {
+		t.Errorf("Expected 1 player in queue, got %v", queue[params2].Length())
 	}
 }
 
@@ -139,9 +153,9 @@ func TestDisconnectRemovesFromQueue(t *testing.T) {
 	player := NewTestPlayer()
 	queueManager := NewQueueManager()
 
-	payload := QueueUpParams{
-		Duration:  "1m",
-		Increment: "0s",
+	payload := map[string]interface{}{
+		"duration":  "1m",
+		"increment": "0s",
 	}
 
 	go queueManager.Process(Message{
@@ -159,7 +173,10 @@ func TestDisconnectRemovesFromQueue(t *testing.T) {
 		})
 	})
 
-	got := queueManager.queue[payload].Pop()
+	var params QueueUpParams
+	mapstructure.Decode(payload, &params)
+
+	got := queueManager.queue[params].Pop()
 
 	if got != nil {
 		t.Errorf("Expected empty queue, got %v", got)
@@ -172,9 +189,9 @@ func TestDispatchesMatchFound(t *testing.T) {
 
 	queueManager := NewQueueManager()
 
-	payload := QueueUpParams{
-		Duration:  "1m",
-		Increment: "0s",
+	payload := map[string]interface{}{
+		"duration":  "1m",
+		"increment": "0s",
 	}
 
 	go queueManager.Process(Message{
@@ -222,8 +239,11 @@ func TestDispatchesMatchFound(t *testing.T) {
 		t.Error("Timeout before server response")
 	}
 
-	if queueManager.queue[payload].Length() != 0 {
-		t.Errorf("Expected empty queue, got %v", queueManager.queue[payload].Length())
+	var params QueueUpParams
+	mapstructure.Decode(payload, &params)
+
+	if queueManager.queue[params].Length() != 0 {
+		t.Errorf("Expected empty queue, got %v", queueManager.queue[params].Length())
 	}
 }
 
@@ -236,9 +256,9 @@ func TestDoesNotDispatchMatchFound(t *testing.T) {
 	go queueManager.Process(Message{
 		Type:   QueueUp,
 		Player: p1,
-		Payload: QueueUpParams{
-			Duration:  "1m",
-			Increment: "0s",
+		Payload: map[string]interface{}{
+			"duration":  "1m",
+			"increment": "0s",
 		},
 	})
 
@@ -254,9 +274,9 @@ func TestDoesNotDispatchMatchFound(t *testing.T) {
 	go queueManager.Process(Message{
 		Type:   QueueUp,
 		Player: p2,
-		Payload: QueueUpParams{
-			Duration:  "5m",
-			Increment: "0s",
+		Payload: map[string]interface{}{
+			"duration":  "5m",
+			"increment": "0s",
 		},
 	})
 
