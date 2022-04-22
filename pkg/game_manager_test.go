@@ -322,15 +322,19 @@ func TestBlackDisconnectEndsGame(t *testing.T) {
 	case res := <-p1.Outgoing:
 		result := res.Payload.(GameOverResponse)
 		if !result.Winner {
-			t.Error("Expected white to win by resignation")
+			t.Error("Expected white to win by abandonment")
 		}
-	case res := <-p2.Outgoing:
-		result := res.Payload.(GameOverResponse)
-		if result.Winner {
-			t.Error("Expected white to win by resignation")
+		if result.Reason != "Abandonment" {
+			t.Errorf("Expected white to win by abandonment, got %v", result.Reason)
 		}
 	case <-time.After(time.Second):
 		t.Error("Expected game over, got timeout instead")
+	}
+
+	select {
+	case <-time.After(time.Second):
+	case <-p2.Outgoing:
+		t.Error("Expected white to win by abandonment")
 	}
 
 	if gameManager.FindGame(params.GameId) != nil {
@@ -360,15 +364,19 @@ func TestWhiteDisconnectEndsGame(t *testing.T) {
 	})
 
 	select {
-	case res := <-p1.Outgoing:
-		result := res.Payload.(GameOverResponse)
-		if result.Winner {
-			t.Error("Expected black to win by resignation")
-		}
+	case <-time.After(time.Second):
+	case <-p1.Outgoing:
+		t.Error("Disconnected player should not receive a response")
+	}
+
+	select {
 	case res := <-p2.Outgoing:
 		result := res.Payload.(GameOverResponse)
+		if result.Reason != "Abandonment" {
+			t.Errorf("Expected black to win by abandonment, got %v", result.Reason)
+		}
 		if !result.Winner {
-			t.Error("Expected black to win by resignation")
+			t.Error("Expected black to win by abandonment")
 		}
 	case <-time.After(time.Second):
 		t.Error("Expected game over, got timeout instead")

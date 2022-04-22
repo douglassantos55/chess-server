@@ -129,6 +129,10 @@ func (g *Game) GameOver(loser *Player, reason string) {
 		winner = g.Current.Next.Player
 	}
 
+	if reason == "Abandonment" {
+		loser = nil
+	}
+
 	g.Over <- GameResult{
 		Loser:  loser,
 		Winner: winner,
