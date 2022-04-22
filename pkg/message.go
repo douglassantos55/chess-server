@@ -67,3 +67,8 @@ type GameOverResponse struct {
 	GameId uuid.UUID `json:"game_id"`
 	Winner bool      `json:"winner"`
 }
+
+type QueueUpParams struct {
+	Duration  string
+	Increment string
+}

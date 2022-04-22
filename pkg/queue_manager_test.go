@@ -12,6 +12,10 @@ func TestReturnsResponse(t *testing.T) {
 	go queueManager.Process(Message{
 		Type:   QueueUp,
 		Player: player,
+		Payload: QueueUpParams{
+			Duration:  "1m",
+			Increment: "0s",
+		},
 	})
 
 	select {
@@ -41,31 +45,77 @@ func TestInvalidType(t *testing.T) {
 }
 
 func TestAddsToQueue(t *testing.T) {
-	player := NewTestPlayer()
+	player1 := NewTestPlayer()
+	player2 := NewTestPlayer()
+
 	queueManager := NewQueueManager()
 
+	payload1 := QueueUpParams{
+		Duration:  "1m",
+		Increment: "0s",
+	}
+
+	payload2 := QueueUpParams{
+		Duration:  "10m",
+		Increment: "0s",
+	}
+
 	go queueManager.Process(Message{
-		Type:   QueueUp,
-		Player: player,
+		Type:    QueueUp,
+		Player:  player1,
+		Payload: payload1,
 	})
 
-	<-player.Outgoing
+	<-player1.Outgoing
 
-	if queueManager.queue.Pop() != player {
-		t.Error("Expected head to be player")
+	go queueManager.Process(Message{
+		Type:    QueueUp,
+		Player:  player2,
+		Payload: payload2,
+	})
+
+	<-player2.Outgoing
+
+	if queueManager.queue[payload1].Length() != 1 {
+		t.Error("Expected 1 player on 1m+0s queue")
+	}
+
+	if queueManager.queue[payload2].Length() != 1 {
+		t.Error("Expected 1 player on 10m+0s queue")
 	}
 }
 
 func TestCancel(t *testing.T) {
 	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
 	queueManager := NewQueueManager()
 
+	payload1 := QueueUpParams{
+		Duration:  "1m",
+		Increment: "0s",
+	}
+
 	go queueManager.Process(Message{
-		Type:   QueueUp,
-		Player: p1,
+		Type:    QueueUp,
+		Player:  p1,
+		Payload: payload1,
 	})
 
 	<-p1.Outgoing
+
+	payload2 := QueueUpParams{
+		Duration:  "10m",
+		Increment: "0s",
+	}
+
+	go queueManager.Process(Message{
+		Type:    QueueUp,
+		Player:  p2,
+		Payload: payload2,
+	})
+
+	<-p2.Outgoing
 
 	<-wait(func() {
 		queueManager.Process(Message{
@@ -76,8 +126,12 @@ func TestCancel(t *testing.T) {
 
 	queue := queueManager.queue
 
-	if queue.Length() != 0 {
-		t.Errorf("Expected empty queue, got %v", queue.Length())
+	if queue[payload1].Length() != 0 {
+		t.Errorf("Expected empty queue, got %v", queue[payload1].Length())
+	}
+
+	if queue[payload2].Length() == 0 {
+		t.Errorf("Expected 1 player in queue, got %v", queue[payload2].Length())
 	}
 }
 
@@ -85,9 +139,15 @@ func TestDisconnectRemovesFromQueue(t *testing.T) {
 	player := NewTestPlayer()
 	queueManager := NewQueueManager()
 
+	payload := QueueUpParams{
+		Duration:  "1m",
+		Increment: "0s",
+	}
+
 	go queueManager.Process(Message{
-		Type:   QueueUp,
-		Player: player,
+		Type:    QueueUp,
+		Player:  player,
+		Payload: payload,
 	})
 
 	<-player.Outgoing
@@ -99,7 +159,7 @@ func TestDisconnectRemovesFromQueue(t *testing.T) {
 		})
 	})
 
-	got := queueManager.queue.Pop()
+	got := queueManager.queue[payload].Pop()
 
 	if got != nil {
 		t.Errorf("Expected empty queue, got %v", got)
@@ -112,14 +172,30 @@ func TestDispatchesMatchFound(t *testing.T) {
 
 	queueManager := NewQueueManager()
 
-	go queueManager.Process(Message{
-		Type:   QueueUp,
-		Player: p1,
-	})
+	payload := QueueUpParams{
+		Duration:  "1m",
+		Increment: "0s",
+	}
 
 	go queueManager.Process(Message{
-		Type:   QueueUp,
-		Player: p2,
+		Type:    QueueUp,
+		Player:  p1,
+		Payload: payload,
+	})
+
+	select {
+	case res := <-p1.Outgoing:
+		if res.Type != WaitForMatch {
+			t.Errorf("Expected wait for match, got %+v", res)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Error("Timeout before server response")
+	}
+
+	go queueManager.Process(Message{
+		Type:    QueueUp,
+		Player:  p2,
+		Payload: payload,
 	})
 
 	select {
@@ -146,7 +222,58 @@ func TestDispatchesMatchFound(t *testing.T) {
 		t.Error("Timeout before server response")
 	}
 
-	if queueManager.queue.Length() != 0 {
-		t.Errorf("Expected empty queue, got %v", queueManager.queue.Length())
+	if queueManager.queue[payload].Length() != 0 {
+		t.Errorf("Expected empty queue, got %v", queueManager.queue[payload].Length())
+	}
+}
+
+func TestDoesNotDispatchMatchFound(t *testing.T) {
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	queueManager := NewQueueManager()
+
+	go queueManager.Process(Message{
+		Type:   QueueUp,
+		Player: p1,
+		Payload: QueueUpParams{
+			Duration:  "1m",
+			Increment: "0s",
+		},
+	})
+
+	select {
+	case res := <-p1.Outgoing:
+		if res.Type != WaitForMatch {
+			t.Errorf("Expected wait for match, got %+v", res)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Error("Timeout before server response")
+	}
+
+	go queueManager.Process(Message{
+		Type:   QueueUp,
+		Player: p2,
+		Payload: QueueUpParams{
+			Duration:  "5m",
+			Increment: "0s",
+		},
+	})
+
+	select {
+	case res := <-p2.Outgoing:
+		if res.Type != WaitForMatch {
+			t.Errorf("Expected wait for match, got %+v", res)
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Error("Timeout before server response")
+	}
+
+	select {
+	case <-time.After(time.Second):
+	case res := <-Dispatcher:
+		if res.Type == MatchFound {
+			t.Error("Should not receive match found")
+		}
 	}
 }
