@@ -176,7 +176,7 @@ func TestSendsMoveEventToPlayer(t *testing.T) {
 		Payload: MatchParams{
 			Players: []*Player{p1, p2},
 			TimeControl: TimeControl{
-				Duration:  "4s",
+				Duration:  "1s",
 				Increment: "0s",
 			},
 		},
@@ -203,8 +203,16 @@ func TestSendsMoveEventToPlayer(t *testing.T) {
 		if response.Type != StartTurn {
 			t.Errorf("Expected StartTurn, got %v", response.Type)
 		}
-
 		payload := response.Payload.(MoveResponse)
+		if payload.To != "e4" {
+			t.Errorf("Expected to e4, got %v", payload.To)
+		}
+		if payload.From != "e2" {
+			t.Errorf("Expected from e2, got %v", payload.From)
+		}
+		if payload.GameId != params.GameId {
+			t.Errorf("Expected game ID to be %v, got %v", params.GameId, payload.GameId)
+		}
 		if payload.Time < time.Second {
 			t.Errorf("Expected 1s, got %v", payload.Time)
 		}

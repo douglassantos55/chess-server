@@ -117,7 +117,7 @@ func (g *GameManager) Process(event Message) {
 					Type: StartTurn,
 					Payload: MoveResponse{
 						From:   data.From,
-						To:     data.From,
+						To:     data.To,
 						Time:   game.Current.left,
 						GameId: gameUuid,
 					},
