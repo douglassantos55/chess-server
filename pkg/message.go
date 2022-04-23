@@ -44,9 +44,10 @@ type Response struct {
 	Payload interface{}  `json:"payload"`
 }
 
-type GameParams struct {
-	GameId uuid.UUID `json:"game_id"`
-	Color  Color     `json:"color"`
+type GameStart struct {
+	GameId      uuid.UUID   `json:"game_id"`
+	Color       Color       `json:"color"`
+	TimeControl TimeControl `json:"time_control"`
 }
 
 type MovePiece struct {
@@ -68,7 +69,12 @@ type GameOverResponse struct {
 	Winner bool      `json:"winner"`
 }
 
-type QueueUpParams struct {
+type TimeControl struct {
 	Duration  string `json:"duration"`
 	Increment string `json:"increment"`
+}
+
+type MatchParams struct {
+	Players     []*Player   `json:"players"`
+	TimeControl TimeControl `json:"time_control"`
 }

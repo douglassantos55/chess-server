@@ -35,11 +35,11 @@ func (m *MatchMaker) RemoveMatch(matchId uuid.UUID) {
 	delete(m.matches, matchId)
 }
 
-func (m *MatchMaker) CreateMatch(players []*Player) {
+func (m *MatchMaker) CreateMatch(players []*Player, timeControl TimeControl) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	match := NewMatch(players)
+	match := NewMatch(players, timeControl)
 	m.matches[match.Id] = match
 
 	go match.AskConfirmation()
@@ -51,8 +51,11 @@ func (m *MatchMaker) CreateMatch(players []*Player) {
 			m.RemoveMatch(match.Id)
 
 			Dispatcher <- Message{
-				Type:    CreateGame,
-				Payload: players,
+				Type: CreateGame,
+				Payload: MatchParams{
+					Players:     players,
+					TimeControl: match.TimeControl,
+				},
 			}
 		case requeue := <-match.Canceled:
 			m.RemoveMatch(match.Id)
@@ -67,6 +70,10 @@ func (m *MatchMaker) CreateMatch(players []*Player) {
 				Dispatcher <- Message{
 					Type:   QueueUp,
 					Player: player,
+					Payload: map[string]interface{}{
+						"duration":  match.TimeControl.Duration,
+						"increment": match.TimeControl.Increment,
+					},
 				}
 			}
 		}
@@ -105,8 +112,8 @@ func (m *MatchMaker) CancelPlayerMatches(player *Player) {
 func (m *MatchMaker) Process(event Message) {
 	switch event.Type {
 	case MatchFound:
-		players := event.Payload.([]*Player)
-		m.CreateMatch(players)
+		params := event.Payload.(MatchParams)
+		m.CreateMatch(params.Players, params.TimeControl)
 
 	case MatchConfirmed:
 		matchId, _ := uuid.Parse(event.Payload.(string))

@@ -10,37 +10,37 @@ const MAX_PLAYERS = 2
 
 type QueueManager struct {
 	mutex *sync.Mutex
-	queue map[QueueUpParams]*Queue
+	queue map[TimeControl]*Queue
 }
 
 func NewQueueManager() *QueueManager {
 	return &QueueManager{
 		mutex: new(sync.Mutex),
-		queue: make(map[QueueUpParams]*Queue),
+		queue: make(map[TimeControl]*Queue),
 	}
 }
 
-func (q *QueueManager) GetQueue(event Message) *Queue {
+func (q *QueueManager) GetQueue(event Message) (*Queue, TimeControl) {
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
-	var params QueueUpParams
-	mapstructure.Decode(event.Payload.(map[string]interface{}), &params)
+	var timeControl TimeControl
+	mapstructure.Decode(event.Payload.(map[string]interface{}), &timeControl)
 
-	queue := q.queue[params]
+	queue := q.queue[timeControl]
 
 	if queue == nil {
 		queue = NewQueue()
-		q.queue[params] = queue
+		q.queue[timeControl] = queue
 	}
 
-	return queue
+	return queue, timeControl
 }
 
 func (q *QueueManager) Process(event Message) {
 	switch event.Type {
 	case QueueUp:
-		queue := q.GetQueue(event)
+		queue, timeControl := q.GetQueue(event)
 		queue.Push(event.Player)
 
 		event.Player.Send(Response{
@@ -56,8 +56,11 @@ func (q *QueueManager) Process(event Message) {
 			}
 
 			Dispatcher <- Message{
-				Type:    MatchFound,
-				Payload: players,
+				Type: MatchFound,
+				Payload: MatchParams{
+					Players:     players,
+					TimeControl: timeControl,
+				},
 			}
 		}
 	case Dequeue, Disconnected:

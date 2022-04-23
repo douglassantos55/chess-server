@@ -21,10 +21,11 @@ type GameResult struct {
 }
 
 type GamePlayer struct {
-	Next   *GamePlayer
-	Player *Player
-	Color  Color
-	King   string
+	Next        *GamePlayer
+	Player      *Player
+	Color       Color
+	King        string
+	TimeControl TimeControl
 
 	start time.Time
 	left  time.Duration
@@ -32,7 +33,8 @@ type GamePlayer struct {
 	mutex *sync.Mutex
 }
 
-func NewGamePlayer(color Color, player *Player, duration time.Duration) *GamePlayer {
+func NewGamePlayer(color Color, player *Player, timeControl TimeControl) *GamePlayer {
+	duration, _ := time.ParseDuration(timeControl.Duration)
 	timer := time.NewTimer(duration)
 	timer.Stop()
 
@@ -43,9 +45,10 @@ func NewGamePlayer(color Color, player *Player, duration time.Duration) *GamePla
 	}
 
 	return &GamePlayer{
-		Player: player,
-		Color:  color,
-		King:   king,
+		Player:      player,
+		Color:       color,
+		King:        king,
+		TimeControl: timeControl,
 
 		mutex: new(sync.Mutex),
 		left:  duration,
@@ -76,7 +79,9 @@ func (p *GamePlayer) StopTimer() {
 	defer p.mutex.Unlock()
 
 	p.timer.Stop()
-	p.left = time.Since(p.start)
+
+	increment, _ := time.ParseDuration(p.TimeControl.Increment)
+	p.left = p.left - time.Since(p.start) + increment
 }
 
 func (p *GamePlayer) Send(response Response) {
@@ -92,9 +97,9 @@ type Game struct {
 	mutex *sync.Mutex
 }
 
-func NewGame(duration time.Duration, players []*Player) *Game {
-	white := NewGamePlayer(White, players[0], duration)
-	black := NewGamePlayer(Black, players[1], duration)
+func NewGame(players []*Player, timeControl TimeControl) *Game {
+	white := NewGamePlayer(White, players[0], timeControl)
+	black := NewGamePlayer(Black, players[1], timeControl)
 
 	white.SetNext(black)
 
@@ -211,9 +216,10 @@ func (g *Game) Start() {
 
 		player.Send(Response{
 			Type: StartGame,
-			Payload: GameParams{
-				GameId: g.Id,
-				Color:  player.Color,
+			Payload: GameStart{
+				GameId:      g.Id,
+				Color:       player.Color,
+				TimeControl: player.TimeControl,
 			},
 		})
 

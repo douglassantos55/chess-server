@@ -10,8 +10,9 @@ import (
 type Match struct {
 	mutex *sync.Mutex
 
-	Id      uuid.UUID
-	Players []*Player
+	Id          uuid.UUID
+	Players     []*Player
+	TimeControl TimeControl
 
 	Done     chan bool
 	Ready    chan []*Player
@@ -20,12 +21,13 @@ type Match struct {
 	Confirmed chan *Player
 }
 
-func NewMatch(players []*Player) *Match {
+func NewMatch(players []*Player, timeControl TimeControl) *Match {
 	return &Match{
 		mutex: new(sync.Mutex),
 
-		Id:      uuid.New(),
-		Players: players,
+		Id:          uuid.New(),
+		Players:     players,
+		TimeControl: timeControl,
 
 		Done:     make(chan bool),
 		Ready:    make(chan []*Player),

@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -19,11 +18,11 @@ func NewGameManager() *GameManager {
 	}
 }
 
-func (g *GameManager) CreateGame(players []*Player) *Game {
+func (g *GameManager) CreateGame(players []*Player, timeControl TimeControl) *Game {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	game := NewGame(time.Second, players)
+	game := NewGame(players, timeControl)
 	g.games[game.Id] = game
 
 	go func() {
@@ -89,7 +88,8 @@ func (g *GameManager) FindPlayerGame(player *Player) *Game {
 func (g *GameManager) Process(event Message) {
 	switch event.Type {
 	case CreateGame:
-		game := g.CreateGame(event.Payload.([]*Player))
+		payload := event.Payload.(MatchParams)
+		game := g.CreateGame(payload.Players, payload.TimeControl)
 		game.Start()
 	case Move:
 		data := event.Payload.(MovePiece)

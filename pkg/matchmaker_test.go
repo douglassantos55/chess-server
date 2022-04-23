@@ -31,8 +31,14 @@ func TestCreatesMatch(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go matchmaker.Process(Message{
-		Type:    MatchFound,
-		Payload: []*Player{p1, p2},
+		Type: MatchFound,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "10m",
+				Increment: "0s",
+			},
+		},
 	})
 
 	res1 := <-p1.Outgoing
@@ -57,8 +63,14 @@ func TestAsksForConfirmation(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go matchmaker.Process(Message{
-		Type:    MatchFound,
-		Payload: []*Player{p1, p2},
+		Type: MatchFound,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "1m",
+				Increment: "0s",
+			},
+		},
 	})
 
 	select {
@@ -88,16 +100,34 @@ func TestConcurrency(t *testing.T) {
 	p3 := NewTestPlayer()
 
 	go matchmaker.Process(Message{
-		Type:    MatchFound,
-		Payload: []*Player{p1},
+		Type: MatchFound,
+		Payload: MatchParams{
+			Players: []*Player{p1},
+			TimeControl: TimeControl{
+				Duration:  "1m",
+				Increment: "0s",
+			},
+		},
 	})
 	go matchmaker.Process(Message{
-		Type:    MatchFound,
-		Payload: []*Player{p2},
+		Type: MatchFound,
+		Payload: MatchParams{
+			Players: []*Player{p2},
+			TimeControl: TimeControl{
+				Duration:  "1m",
+				Increment: "0s",
+			},
+		},
 	})
 	go matchmaker.Process(Message{
-		Type:    MatchFound,
-		Payload: []*Player{p3},
+		Type: MatchFound,
+		Payload: MatchParams{
+			Players: []*Player{p3},
+			TimeControl: TimeControl{
+				Duration:  "1m",
+				Increment: "0s",
+			},
+		},
 	})
 
 	responses := []Response{}
@@ -123,8 +153,14 @@ func TestRequeuesConfirmedAfterTimeout(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go matchmaker.Process(Message{
-		Type:    MatchFound,
-		Payload: []*Player{p1, p2},
+		Type: MatchFound,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "10m",
+				Increment: "0s",
+			},
+		},
 	})
 
 	var response1 Response
@@ -165,6 +201,14 @@ func TestRequeuesConfirmedAfterTimeout(t *testing.T) {
 		if queueUp.Type != QueueUp {
 			t.Error("Expected confirmed to be requeued", queueUp.Type)
 		}
+
+		payload := queueUp.Payload.(map[string]interface{})
+		if payload["duration"] != "10m" {
+			t.Errorf("Expected 10m duration, got %v", payload["duration"])
+		}
+		if payload["increment"] != "0s" {
+			t.Errorf("Expected 0s increment, got %v", payload["increment"])
+		}
 	case <-time.After(time.Second):
 		t.Error("Expected response, got timeout")
 	}
@@ -175,8 +219,14 @@ func TestCancelsMatchIfNoConfirmation(t *testing.T) {
 	p1 := NewTestPlayer()
 
 	go matchmaker.Process(Message{
-		Type:    MatchFound,
-		Payload: []*Player{p1},
+		Type: MatchFound,
+		Payload: MatchParams{
+			Players: []*Player{p1},
+			TimeControl: TimeControl{
+				Duration:  "5m",
+				Increment: "5s",
+			},
+		},
 	})
 
 	<-p1.Outgoing
@@ -194,8 +244,14 @@ func TestDispatchesGameStart(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go matchmaker.Process(Message{
-		Type:    MatchFound,
-		Payload: []*Player{p1, p2},
+		Type: MatchFound,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "5m",
+				Increment: "0s",
+			},
+		},
 	})
 
 	response := <-p1.Outgoing
@@ -231,10 +287,16 @@ func TestDispatchesGameStart(t *testing.T) {
 			t.Errorf("Expected game start, got %v", res.Type)
 		}
 
-		players := res.Payload.([]*Player)
+		params := res.Payload.(MatchParams)
 
-		if len(players) != MAX_PLAYERS {
-			t.Errorf("Expected 2 players, got %v", len(players))
+		if len(params.Players) != MAX_PLAYERS {
+			t.Errorf("Expected 2 players, got %v", len(params.Players))
+		}
+		if params.TimeControl.Duration != "5m" {
+			t.Errorf("Expected 5m duration, got %v", params.TimeControl.Duration)
+		}
+		if params.TimeControl.Increment != "0s" {
+			t.Errorf("Expected 0s increment, got %v", params.TimeControl.Increment)
 		}
 	case <-time.After(time.Second):
 		t.Error("Expected response, got timeout")
@@ -252,8 +314,14 @@ func TestRefuseMatch(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go matchmaker.Process(Message{
-		Type:    MatchFound,
-		Payload: []*Player{p1, p2},
+		Type: MatchFound,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "15m",
+				Increment: "5s",
+			},
+		},
 	})
 
 	var response1 Response
@@ -299,6 +367,14 @@ func TestRefuseMatch(t *testing.T) {
 		if queueUp.Type != QueueUp {
 			t.Error("Expected confirmed to be requeued", queueUp.Type)
 		}
+
+		payload := queueUp.Payload.(map[string]interface{})
+		if payload["duration"] != "15m" {
+			t.Errorf("Expected 15m duration, got %v", payload["duration"])
+		}
+		if payload["increment"] != "5s" {
+			t.Errorf("Expected 5s increment, got %v", payload["increment"])
+		}
 	case <-time.After(time.Second):
 		t.Error("Expected response, got timeout")
 	}
@@ -315,8 +391,14 @@ func TestDisconnect(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go matchmaker.Process(Message{
-		Type:    MatchFound,
-		Payload: []*Player{p1, p2},
+		Type: MatchFound,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "1m",
+				Increment: "1s",
+			},
+		},
 	})
 
 	var response1 Response
@@ -364,6 +446,14 @@ func TestDisconnect(t *testing.T) {
 	case queueUp := <-Dispatcher:
 		if queueUp.Type != QueueUp {
 			t.Error("Expected confirmed to be requeued", queueUp.Type)
+		}
+
+		payload := queueUp.Payload.(map[string]interface{})
+		if payload["duration"] != "1m" {
+			t.Errorf("Expected 1m duration, got %v", payload["duration"])
+		}
+		if payload["increment"] != "1s" {
+			t.Errorf("Expected 1s increment, got %v", payload["increment"])
 		}
 	case <-time.After(time.Second):
 		t.Error("Expected response, got timeout")

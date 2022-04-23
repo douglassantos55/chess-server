@@ -39,22 +39,42 @@ func TestCreatesGame(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go gameManager.Process(Message{
-		Type:    CreateGame,
-		Payload: []*Player{p1, p2},
+		Type: CreateGame,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "2s",
+				Increment: "0s",
+			},
+		},
 	})
 
-	var params1 GameParams
-	var params2 GameParams
+	var params1 GameStart
+	var params2 GameStart
 
 	for params1.GameId == uuid.Nil || params2.GameId == uuid.Nil {
 		select {
 		case res := <-p1.Outgoing:
-			params1 = res.Payload.(GameParams)
+			params1 = res.Payload.(GameStart)
 		case res := <-p2.Outgoing:
-			params2 = res.Payload.(GameParams)
+			params2 = res.Payload.(GameStart)
 		case <-time.After(time.Second):
 			t.Error("Expected game response, timedout instead")
 		}
+	}
+
+	if params1.Color != White {
+		t.Error("Expected p1 to be white")
+	}
+	if params2.Color != Black {
+		t.Error("Expected p2 to be black")
+	}
+
+	if params1.TimeControl.Duration != "2s" {
+		t.Errorf("Expected 2s duration, got %v", params1.TimeControl.Duration)
+	}
+	if params2.TimeControl.Duration != "2s" {
+		t.Errorf("Expected 2s duration, got %v", params2.TimeControl.Duration)
 	}
 
 	game := gameManager.FindGame(params1.GameId)
@@ -71,14 +91,20 @@ func TestMovePieceHandler(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go gameManager.Process(Message{
-		Type:    CreateGame,
-		Payload: []*Player{p1, p2},
+		Type: CreateGame,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "100ms",
+				Increment: "0s",
+			},
+		},
 	})
 
 	res := <-p1.Outgoing
 	<-p2.Outgoing
 
-	params := res.Payload.(GameParams)
+	params := res.Payload.(GameStart)
 	game := gameManager.FindGame(params.GameId)
 
 	go gameManager.Process(Message{
@@ -118,7 +144,7 @@ func TestMovePieceHandler(t *testing.T) {
 	}
 
 	select {
-	case <-time.After(2 * time.Second):
+	case <-time.After(time.Second):
 		t.Error("Expected game over response, got timeout")
 	case response := <-p1.Outgoing:
 		result := response.Payload.(GameOverResponse)
@@ -146,14 +172,20 @@ func TestSendsMoveEventToPlayer(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go manager.Process(Message{
-		Type:    CreateGame,
-		Payload: []*Player{p1, p2},
+		Type: CreateGame,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "4s",
+				Increment: "0s",
+			},
+		},
 	})
 
 	res := <-p1.Outgoing
 	<-p2.Outgoing
 
-	params := res.Payload.(GameParams)
+	params := res.Payload.(GameStart)
 
 	go manager.Process(Message{
 		Type: Move,
@@ -186,14 +218,18 @@ func TestGameOver(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go gameManager.Process(Message{
-		Type:    CreateGame,
-		Payload: []*Player{p1, p2},
+		Type: CreateGame,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "100ms",
+				Increment: "0s",
+			},
+		},
 	})
 
 	res := <-p1.Outgoing
 	<-p2.Outgoing
-
-	params := res.Payload.(GameParams)
 
 	select {
 	case res := <-p1.Outgoing:
@@ -201,13 +237,20 @@ func TestGameOver(t *testing.T) {
 		if result.Winner {
 			t.Error("Expected black to win on time")
 		}
+		if result.Reason != "Timeout" {
+			t.Errorf("Expected black to win on time, got %v", result.Reason)
+		}
 	case res := <-p2.Outgoing:
 		result := res.Payload.(GameOverResponse)
 		if !result.Winner {
 			t.Error("Expected black to win on time")
 		}
+		if result.Reason != "Timeout" {
+			t.Errorf("Expected black to win on time, got %v", result.Reason)
+		}
 	}
 
+	params := res.Payload.(GameStart)
 	if gameManager.FindGame(params.GameId) != nil {
 		t.Error("Expected game to be removed")
 	}
@@ -220,14 +263,20 @@ func TestWhiteResign(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go gameManager.Process(Message{
-		Type:    CreateGame,
-		Payload: []*Player{p1, p2},
+		Type: CreateGame,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "5s",
+				Increment: "1s",
+			},
+		},
 	})
 
 	res := <-p1.Outgoing
 	<-p2.Outgoing
 
-	params := res.Payload.(GameParams)
+	params := res.Payload.(GameStart)
 
 	go gameManager.Process(Message{
 		Player:  p1,
@@ -262,14 +311,20 @@ func TestBlackResign(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go gameManager.Process(Message{
-		Type:    CreateGame,
-		Payload: []*Player{p1, p2},
+		Type: CreateGame,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "3s",
+				Increment: "0s",
+			},
+		},
 	})
 
 	res := <-p1.Outgoing
 	<-p2.Outgoing
 
-	params := res.Payload.(GameParams)
+	params := res.Payload.(GameStart)
 
 	go gameManager.Process(Message{
 		Player:  p2,
@@ -304,14 +359,20 @@ func TestBlackDisconnectEndsGame(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go gameManager.Process(Message{
-		Type:    CreateGame,
-		Payload: []*Player{p1, p2},
+		Type: CreateGame,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "5s",
+				Increment: "2s",
+			},
+		},
 	})
 
 	res := <-p1.Outgoing
 	<-p2.Outgoing
 
-	params := res.Payload.(GameParams)
+	params := res.Payload.(GameStart)
 
 	go gameManager.Process(Message{
 		Player: p2,
@@ -349,14 +410,20 @@ func TestWhiteDisconnectEndsGame(t *testing.T) {
 	p2 := NewTestPlayer()
 
 	go gameManager.Process(Message{
-		Type:    CreateGame,
-		Payload: []*Player{p1, p2},
+		Type: CreateGame,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "2s",
+				Increment: "1s",
+			},
+		},
 	})
 
 	res := <-p1.Outgoing
 	<-p2.Outgoing
 
-	params := res.Payload.(GameParams)
+	params := res.Payload.(GameStart)
 
 	go gameManager.Process(Message{
 		Player: p1,

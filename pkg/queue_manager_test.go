@@ -78,14 +78,14 @@ func TestAddsToQueue(t *testing.T) {
 
 	<-player2.Outgoing
 
-	var params1 QueueUpParams
+	var params1 TimeControl
 	mapstructure.Decode(payload1, &params1)
 
 	if queueManager.queue[params1].Length() != 1 {
 		t.Error("Expected 1 player on 1m+0s queue")
 	}
 
-	var params2 QueueUpParams
+	var params2 TimeControl
 	mapstructure.Decode(payload2, &params2)
 
 	if queueManager.queue[params2].Length() != 1 {
@@ -134,14 +134,14 @@ func TestCancel(t *testing.T) {
 
 	queue := queueManager.queue
 
-	var params1 QueueUpParams
+	var params1 TimeControl
 	mapstructure.Decode(payload1, &params1)
 
 	if queue[params1].Length() != 0 {
 		t.Errorf("Expected empty queue, got %v", queue[params1].Length())
 	}
 
-	var params2 QueueUpParams
+	var params2 TimeControl
 	mapstructure.Decode(payload2, &params2)
 
 	if queue[params2].Length() == 0 {
@@ -173,7 +173,7 @@ func TestDisconnectRemovesFromQueue(t *testing.T) {
 		})
 	})
 
-	var params QueueUpParams
+	var params TimeControl
 	mapstructure.Decode(payload, &params)
 
 	got := queueManager.queue[params].Pop()
@@ -230,16 +230,22 @@ func TestDispatchesMatchFound(t *testing.T) {
 			t.Errorf("Expected match found, got %+v", res)
 		}
 
-		players := res.Payload.([]*Player)
+		params := res.Payload.(MatchParams)
 
-		if len(players) != 2 {
-			t.Errorf("Expected 2 players, got %v", len(players))
+		if len(params.Players) != 2 {
+			t.Errorf("Expected 2 players, got %v", len(params.Players))
+		}
+		if params.TimeControl.Duration != "1m" {
+			t.Errorf("Expected duration to be 1m, got %v", len(params.TimeControl.Duration))
+		}
+		if params.TimeControl.Increment != "0s" {
+			t.Errorf("Expected increment to be 0s, got %v", len(params.TimeControl.Increment))
 		}
 	case <-time.After(time.Second):
 		t.Error("Timeout before server response")
 	}
 
-	var params QueueUpParams
+	var params TimeControl
 	mapstructure.Decode(payload, &params)
 
 	if queueManager.queue[params].Length() != 0 {
