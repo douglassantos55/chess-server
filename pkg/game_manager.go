@@ -106,22 +106,25 @@ func (g *GameManager) Process(event Message) {
 			return
 		}
 
-		if game.Move(data.From, data.To) {
+		moves := game.Move(data.From, data.To)
+		if len(moves) > 0 {
 			if game.IsCheckmate() {
 				game.Checkmate()
 			} else {
 				game.EndTurn()
 				game.StartTurn()
 
-				game.Current.Send(Response{
-					Type: StartTurn,
-					Payload: MoveResponse{
-						From:   data.From,
-						To:     data.To,
-						Time:   game.Current.left,
-						GameId: gameUuid,
-					},
-				})
+				for _, move := range moves {
+					game.Current.Send(Response{
+						Type: StartTurn,
+						Payload: MoveResponse{
+							From:   move.From.String(),
+							To:     move.To.String(),
+							Time:   game.Current.left,
+							GameId: gameUuid,
+						},
+					})
+				}
 			}
 		}
 	case Resign:

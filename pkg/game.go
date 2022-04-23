@@ -160,23 +160,22 @@ func (g *Game) StartTurn() {
 	g.Current.StartTimer()
 }
 
-func (g *Game) Move(from, to string) bool {
+func (g *Game) Move(from, to string) []AllowedMove {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
 	piece := g.board.Square(from)
-
-	if piece.Color == g.Current.Color {
-		g.board.Move(from, to)
+	if piece != Empty() && piece.Color == g.Current.Color {
+		moves := g.board.Move(from, to)
 
 		if piece.king {
 			g.Current.King = to
 		}
 
-		return true
+		return moves
 	}
 
-	return false
+	return []AllowedMove{}
 }
 
 func (g *Game) IsCheckmate() bool {

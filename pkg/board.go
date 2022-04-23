@@ -232,14 +232,19 @@ func (b *Board) IsThreatened(square string, color Color) []Range {
 	return ranges
 }
 
-func (b *Board) Move(from, to string) {
+func (b *Board) Move(from, to string) []AllowedMove {
 	piece := b.Square(from)
+	moves := piece.Move(from, to, b)
 
-	if piece.Move(from, to, b) {
-		dest, _ := parseSquare(to)
-		source, _ := parseSquare(from)
+	if len(moves) > 0 {
+		for _, move := range moves {
+			pieceToMove := b.Square(move.From.String())
 
-		b.matrix[dest.row][dest.col] = piece
-		b.matrix[source.row][source.col] = Empty()
+			b.matrix[move.To.row][move.To.col] = pieceToMove
+			b.matrix[move.From.row][move.From.col] = Empty()
+		}
+		return moves
 	}
+
+	return []AllowedMove{}
 }

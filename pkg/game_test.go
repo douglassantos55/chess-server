@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -203,7 +204,7 @@ func TestWhiteCannotMoveBlackPiece(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-	if game.Move("e7", "e5") {
+	if len(game.Move("e7", "e5")) > 0 {
 		t.Error("White should not be able to move black's pieces")
 	}
 
@@ -230,12 +231,12 @@ func TestBlackCannotMoveWhitePiece(t *testing.T) {
 	<-p1.Outgoing
 	<-p2.Outgoing
 
-	if game.Move("e2", "e4") { // white's turn
+	if len(game.Move("e2", "e4")) > 0 { // white's turn
 		game.EndTurn()
 		game.StartTurn()
 	}
 
-	if game.Move("d2", "d4") { // black's turn
+	if len(game.Move("d2", "d4")) > 0 { // black's turn
 		t.Error("Black should not be able to move white's pieces")
 	}
 
@@ -365,5 +366,34 @@ func TestIncrements(t *testing.T) {
 	time := game.Current.Next.left
 	if time.Seconds() < 1.9 {
 		t.Errorf("Expected 2s, got %v", time)
+	}
+}
+
+func TestCastle(t *testing.T) {
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	game := NewGame([]*Player{p1, p2}, TimeControl{
+		Duration:  "1s",
+		Increment: "1s",
+	})
+
+	go game.Start()
+
+	<-p1.Outgoing // StartGame
+	<-p2.Outgoing // StartGame
+
+	game.Move("e2", "e4") // white's turn
+	game.Move("f1", "c4") // white's turn
+	game.Move("g1", "f3") // white's turn
+	game.Move("e1", "g1") // white's turn
+	game.EndTurn()
+
+	if !reflect.DeepEqual(game.board.Square("g1"), King(White)) {
+		t.Errorf("Expected king on g1, got %v", game.board.Square("g1"))
+	}
+
+	if !reflect.DeepEqual(game.board.Square("f1"), Rook(White)) {
+		t.Errorf("Expected rook on f1, got %v", game.board.Square("f1"))
 	}
 }

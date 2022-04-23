@@ -166,34 +166,34 @@ func TestCombinedMovement(t *testing.T) {
 func TestStraightIsAllowed(t *testing.T) {
 	straight := Straight{}
 
-	if straight.IsAllowed("a1", "a5", White, NewBoard()) {
+	if len(straight.IsAllowed("a1", "a5", White, NewBoard())) > 0 {
 		t.Error("Should not jump over a2")
 	}
-	if straight.IsAllowed("a1", "h1", White, NewBoard()) {
+	if len(straight.IsAllowed("a1", "h1", White, NewBoard())) > 0 {
 		t.Error("Should not jump over b1")
 	}
-	if straight.IsAllowed("a5", "a1", White, NewBoard()) {
+	if len(straight.IsAllowed("a5", "a1", White, NewBoard())) > 0 {
 		t.Error("Should not jump over a2")
 	}
-	if straight.IsAllowed("h1", "a1", White, NewBoard()) {
+	if len(straight.IsAllowed("h1", "a1", White, NewBoard())) > 0 {
 		t.Error("Should not jump over g1")
 	}
-	if !straight.IsAllowed("c3", "c6", White, NewBoard()) {
+	if len(straight.IsAllowed("c3", "c6", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from c3 to c6")
 	}
-	if !straight.IsAllowed("c3", "h3", White, NewBoard()) {
+	if len(straight.IsAllowed("c3", "h3", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from c3 to h3")
 	}
-	if !straight.IsAllowed("c6", "c3", White, NewBoard()) {
+	if len(straight.IsAllowed("c6", "c3", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from c6 to c3")
 	}
-	if !straight.IsAllowed("h3", "c3", White, NewBoard()) {
+	if len(straight.IsAllowed("h3", "c3", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from h3 to c3")
 	}
-	if straight.IsAllowed("a3", "a8", White, NewBoard()) {
+	if len(straight.IsAllowed("a3", "a8", White, NewBoard())) > 0 {
 		t.Error("Should not be able to capture Rook at a8")
 	}
-	if !straight.IsAllowed("a3", "a7", White, NewBoard()) {
+	if len(straight.IsAllowed("a3", "a7", White, NewBoard())) == 0 {
 		t.Error("Should be able to capture pawn at a7")
 	}
 }
@@ -201,54 +201,54 @@ func TestStraightIsAllowed(t *testing.T) {
 func TestDiagonalIsAllowed(t *testing.T) {
 	diagonal := Diagonal{}
 
-	if diagonal.IsAllowed("c1", "e3", White, NewBoard()) {
+	if len(diagonal.IsAllowed("c1", "e3", White, NewBoard())) > 0 {
 		t.Error("Should not jump over d2")
 	}
-	if diagonal.IsAllowed("e3", "c1", White, NewBoard()) {
+	if len(diagonal.IsAllowed("e3", "c1", White, NewBoard())) > 0 {
 		t.Error("Should not jump over d2")
 	}
-	if !diagonal.IsAllowed("e3", "h6", White, NewBoard()) {
+	if len(diagonal.IsAllowed("e3", "h6", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from e3 to h6")
 	}
-	if !diagonal.IsAllowed("h6", "e3", White, NewBoard()) {
+	if len(diagonal.IsAllowed("h6", "e3", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from h6 to e3")
 	}
-	if !diagonal.IsAllowed("c3", "g7", White, NewBoard()) {
+	if len(diagonal.IsAllowed("c3", "g7", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from c3 to g7")
 	}
-	if diagonal.IsAllowed("c3", "h8", White, NewBoard()) {
+	if len(diagonal.IsAllowed("c3", "h8", White, NewBoard())) > 0 {
 		t.Error("Should not be able to capture from c3 at h8")
 	}
-	if diagonal.IsAllowed("f1", "c4", White, NewBoard()) {
+	if len(diagonal.IsAllowed("f1", "c4", White, NewBoard())) > 0 {
 		t.Error("Should not be able to move from f1 to c4")
 	}
-	if !diagonal.IsAllowed("c3", "g7", White, NewBoard()) {
+	if len(diagonal.IsAllowed("c3", "g7", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from c3 to g7")
 	}
-	if diagonal.IsAllowed("c4", "f1", White, NewBoard()) {
+	if len(diagonal.IsAllowed("c4", "f1", White, NewBoard())) > 0 {
 		t.Error("Should not be able to move from c4 to f1")
 	}
-	if !diagonal.IsAllowed("c4", "e6", White, NewBoard()) {
-		t.Error("Should not be able to move from c4 to e6")
+	if len(diagonal.IsAllowed("c4", "e6", White, NewBoard())) == 0 {
+		t.Error("Should be able to move from c4 to e6")
 	}
-	if !diagonal.IsAllowed("e6", "c4", White, NewBoard()) {
-		t.Error("Should not be able to move from e6 to c4")
+	if len(diagonal.IsAllowed("e6", "c4", White, NewBoard())) == 0 {
+		t.Error("Should be able to move from e6 to c4")
 	}
 }
 
 func TestForwardIsAllowed(t *testing.T) {
 	forward := Forward{squares: 1}
 
-	if forward.IsAllowed("a1", "a2", White, NewBoard()) {
+	if len(forward.IsAllowed("a1", "a2", White, NewBoard())) > 0 {
 		t.Error("Should not be able to move from a1 to a2")
 	}
-	if forward.IsAllowed("a6", "a7", White, NewBoard()) {
+	if len(forward.IsAllowed("a6", "a7", White, NewBoard())) > 0 {
 		t.Error("Should not be able to move from a6 to a7")
 	}
-	if !forward.IsAllowed("a3", "a4", White, NewBoard()) {
+	if len(forward.IsAllowed("a3", "a4", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from a3 to a4")
 	}
-	if forward.IsAllowed("a2", "b3", White, NewBoard()) {
+	if len(forward.IsAllowed("a2", "b3", White, NewBoard())) > 0 {
 		t.Error("Should not move from a2 to b3")
 	}
 }
@@ -256,19 +256,19 @@ func TestForwardIsAllowed(t *testing.T) {
 func TestLMovementIsAllowed(t *testing.T) {
 	l := LMovement{}
 
-	if !l.IsAllowed("b1", "c3", White, NewBoard()) {
+	if len(l.IsAllowed("b1", "c3", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from b1 to c3")
 	}
-	if !l.IsAllowed("b1", "a3", White, NewBoard()) {
+	if len(l.IsAllowed("b1", "a3", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from b1 to a3")
 	}
-	if l.IsAllowed("c4", "d2", White, NewBoard()) {
+	if len(l.IsAllowed("c4", "d2", White, NewBoard())) > 0 {
 		t.Error("Should not be able to move from c4 to d2")
 	}
-	if !l.IsAllowed("c5", "b7", White, NewBoard()) {
+	if len(l.IsAllowed("c5", "b7", White, NewBoard())) == 0 {
 		t.Error("Should be able to capture from c5 at b7")
 	}
-	if !l.IsAllowed("c6", "d8", White, NewBoard()) {
+	if len(l.IsAllowed("c6", "d8", White, NewBoard())) == 0 {
 		t.Error("Should be able to capture from c6 at d8")
 	}
 }
@@ -278,25 +278,25 @@ func TestCombinedIsAllowed(t *testing.T) {
 		[]Movement{Straight{}, Diagonal{}},
 	}
 
-	if combined.IsAllowed("a1", "a6", White, NewBoard()) {
+	if len(combined.IsAllowed("a1", "a6", White, NewBoard())) > 0 {
 		t.Error("Should not be able to move from a1 to a6")
 	}
-	if combined.IsAllowed("a6", "a1", White, NewBoard()) {
+	if len(combined.IsAllowed("a6", "a1", White, NewBoard())) > 0 {
 		t.Error("Should not be able to move from a6 to a1")
 	}
-	if combined.IsAllowed("a3", "a8", White, NewBoard()) {
+	if len(combined.IsAllowed("a3", "a8", White, NewBoard())) > 0 {
 		t.Error("Should not be able to move from a3 to a8")
 	}
-	if !combined.IsAllowed("a3", "d6", White, NewBoard()) {
+	if len(combined.IsAllowed("a3", "d6", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from a3 to d6")
 	}
-	if !combined.IsAllowed("d6", "a3", White, NewBoard()) {
+	if len(combined.IsAllowed("d6", "a3", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from d6 to a3")
 	}
-	if !combined.IsAllowed("c3", "g7", White, NewBoard()) {
+	if len(combined.IsAllowed("c3", "g7", White, NewBoard())) == 0 {
 		t.Error("Should be able to move from c3 to g7")
 	}
-	if combined.IsAllowed("c3", "h8", White, NewBoard()) {
+	if len(combined.IsAllowed("c3", "h8", White, NewBoard())) > 0 {
 		t.Error("Should not be able to capture from c3 at h8")
 	}
 }
@@ -323,11 +323,11 @@ func TestKingCantMoveToThreatnedSquare(t *testing.T) {
 	board.Move("d1", "g4")
 	board.Move("e8", "e7")
 
-	if king.Move("e7", "e6", board) {
+	if len(king.Move("e7", "e6", board)) > 0 {
 		t.Error("King should not be able to move into the Queen's sight")
 	}
 
-	if !king.Move("e7", "e8", board) {
+	if len(king.Move("e7", "e8", board)) == 0 {
 		t.Error("King should be able to move back e8")
 	}
 }
@@ -369,5 +369,241 @@ func TestSeesStraight(t *testing.T) {
 
 	if !queen.Sees("e4", "e1", board) {
 		t.Error("Expected black queen on e4 to see e1")
+	}
+}
+
+func TestWhiteShortCastleIsAllowed(t *testing.T) {
+	origin, _ := parseSquare("e1")
+	castle := Castle{origin}
+	board := NewBoard()
+
+	if len(castle.IsAllowed("e1", "g1", White, board)) > 0 {
+		t.Error("Should not be allowed to castle, bishop is in the way")
+	}
+
+	board.Move("e2", "e4")
+	board.Move("f1", "c4")
+
+	if len(castle.IsAllowed("e1", "g1", White, board)) > 0 {
+		t.Error("Should not be allowed to castle, knight is in the way")
+	}
+
+	board.Move("g1", "f3")
+
+	if len(castle.IsAllowed("e1", "g1", White, board)) == 0 {
+		t.Error("Should be allowed to castle")
+	}
+}
+
+func TestWhiteLongCastleIsAllowed(t *testing.T) {
+	origin, _ := parseSquare("e1")
+	castle := Castle{origin}
+	board := NewBoard()
+
+	if len(castle.IsAllowed("e1", "c1", White, board)) > 0 {
+		t.Error("Should not be allowed to castle, queen is in the way")
+	}
+
+	board.Move("e2", "e4")
+	board.Move("d1", "f3")
+
+	if len(castle.IsAllowed("e1", "c1", White, board)) > 0 {
+		t.Error("Should not be allowed to castle, bishop is in the way")
+	}
+
+	board.Move("d2", "d4")
+	board.Move("c1", "e3")
+
+	if len(castle.IsAllowed("e1", "c1", White, board)) > 0 {
+		t.Error("Should not be allowed to castle, knight is in the way")
+	}
+
+	board.Move("b1", "c3")
+
+	if len(castle.IsAllowed("e1", "c1", White, board)) == 0 {
+		t.Error("Should be allowed to castle")
+	}
+}
+
+func TestBlackShortCastleIsAllowed(t *testing.T) {
+	origin, _ := parseSquare("e8")
+	castle := Castle{origin}
+	board := NewBoard()
+
+	if len(castle.IsAllowed("e8", "g8", Black, board)) > 0 {
+		t.Error("Should not be allowed to castle, bishop is in the way")
+	}
+
+	board.Move("e7", "e5")
+	board.Move("f8", "c5")
+
+	if len(castle.IsAllowed("e8", "g8", Black, board)) > 0 {
+		t.Error("Should not be allowed to castle, knight is in the way")
+	}
+
+	board.Move("g8", "f6")
+
+	if len(castle.IsAllowed("e8", "g8", Black, board)) == 0 {
+		t.Error("Should be allowed to castle")
+	}
+}
+
+func TestBlackLongCastleIsAllowed(t *testing.T) {
+	origin, _ := parseSquare("e8")
+	castle := Castle{origin}
+	board := NewBoard()
+
+	if len(castle.IsAllowed("e8", "c8", Black, board)) > 0 {
+		t.Error("Should not be allowed to castle, queen is in the way")
+	}
+
+	board.Move("e7", "e5")
+	board.Move("d8", "f6")
+
+	if len(castle.IsAllowed("e8", "c8", Black, board)) > 0 {
+		t.Error("Should not be allowed to castle, bishop is in the way")
+	}
+
+	board.Move("d7", "d5")
+	board.Move("c8", "e6")
+
+	if len(castle.IsAllowed("e8", "c8", Black, board)) > 0 {
+		t.Error("Should not be allowed to castle, knight is in the way")
+	}
+
+	board.Move("b8", "c6")
+
+	if len(castle.IsAllowed("e8", "c8", Black, board)) == 0 {
+		t.Error("Should be allowed to castle")
+	}
+}
+
+func TestCastleNoRookOnH8(t *testing.T) {
+	origin, _ := parseSquare("e8")
+	castle := Castle{origin}
+	board := NewBoard()
+
+	if len(castle.IsAllowed("e8", "g8", Black, board)) > 0 {
+		t.Error("Should not be allowed to castle, bishop is in the way")
+	}
+
+	board.Move("e7", "e5")
+	board.Move("f8", "c5")
+
+	if len(castle.IsAllowed("e8", "g8", Black, board)) > 0 {
+		t.Error("Should not be allowed to castle, knight is in the way")
+	}
+
+	board.Move("g8", "f6")
+	board.Move("h8", "f8")
+
+	if len(castle.IsAllowed("e8", "g8", Black, board)) > 0 {
+		t.Error("Should be not allowed to castle, rook not on h8")
+	}
+
+	/*
+	   TODO: add move count before testing this
+	   board.Move("f8", "h8")
+
+	   if castle.IsAllowed("e8", "g8", Black, board) {
+	       t.Error("Should be not allowed to castle, rook moved")
+	   }*/
+}
+
+func TestCannotCastleIfNotOnE1(t *testing.T) {
+	origin, _ := parseSquare("e1")
+	castle := Castle{origin}
+	board := NewBoard()
+
+	board.Move("e2", "e4")
+	board.Move("f2", "f4")
+	board.Move("g2", "g4")
+	board.Move("h2", "h4")
+
+	board.Move("e1", "e2")
+	board.Move("h1", "h2")
+
+	if len(castle.IsAllowed("h2", "g2", White, board)) > 0 {
+		t.Error("Should not be allowed to castle, not on home row")
+	}
+}
+
+func TestCannotCastleIfThreatenedF1(t *testing.T) {
+	origin, _ := parseSquare("e1")
+	castle := Castle{origin}
+	board := NewBoard()
+
+	board.Move("e2", "e4")
+	board.Move("f1", "b5")
+	board.Move("g1", "f3")
+
+	board.Move("d7", "d6")
+	board.Move("c8", "e6")
+	board.Move("e6", "c4")
+
+	if len(castle.IsAllowed("e1", "g1", White, board)) > 0 {
+		t.Error("Should not be allowed to castle, bishop attacking f1")
+	}
+}
+
+func TestCannotCastleIfThreatenedG1(t *testing.T) {
+	origin, _ := parseSquare("e1")
+	castle := Castle{origin}
+	board := NewBoard()
+
+	board.Move("e2", "e4")
+	board.Move("f2", "f4")
+	board.Move("f1", "c4")
+	board.Move("g1", "h3")
+
+	board.Move("e7", "e6")
+	board.Move("f8", "c5")
+
+	if len(castle.IsAllowed("e1", "g1", White, board)) > 0 {
+		t.Error("Should not be allowed to castle, bishop attacking g1")
+	}
+}
+
+func TestCannotCastleIfThreatenedC1(t *testing.T) {
+	origin, _ := parseSquare("e1")
+	castle := Castle{origin}
+	board := NewBoard()
+
+	board.Move("d2", "d4")
+	board.Move("c1", "g5")
+	board.Move("d1", "d3")
+	board.Move("b1", "c3")
+
+	board.Move("e7", "e6")
+	board.Move("f8", "d6")
+	board.Move("d6", "f4")
+
+	if len(castle.IsAllowed("e1", "c1", White, board)) > 0 {
+		t.Error("Should not be allowed to castle, bishop attacking c1")
+	}
+}
+
+func TestCannotCastleIfThreatenedD1(t *testing.T) {
+	origin, _ := parseSquare("e1")
+	castle := Castle{origin}
+	board := NewBoard()
+
+	board.Move("d2", "d4")
+	board.Move("e2", "e4")
+	board.Move("c1", "f4")
+	board.Move("d1", "d2")
+	board.Move("b1", "c3")
+	board.Move("f1", "d3")
+	board.Move("g1", "h3")
+
+	board.Move("d7", "d6")
+	board.Move("c8", "g4")
+
+	if len(castle.IsAllowed("e1", "c1", White, board)) > 0 {
+		t.Error("Should not be allowed to castle, bishop attacking d1")
+	}
+
+	if len(castle.IsAllowed("e1", "g1", White, board)) == 0 {
+		t.Error("Should be allowed to castle")
 	}
 }
