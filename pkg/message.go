@@ -51,9 +51,9 @@ type GameStart struct {
 }
 
 type MovePiece struct {
-	From   string    `json:"from"`
-	To     string    `json:"to"`
-	GameId uuid.UUID `json:"game_id"`
+	From   string `json:"from"`
+	To     string `json:"to"`
+	GameId string `json:"game_id" mapstructure:"game_id"`
 }
 
 type MoveResponse struct {

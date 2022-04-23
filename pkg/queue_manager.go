@@ -25,7 +25,7 @@ func (q *QueueManager) GetQueue(event Message) (*Queue, TimeControl) {
 	defer q.mutex.Unlock()
 
 	var timeControl TimeControl
-	mapstructure.Decode(event.Payload.(map[string]interface{}), &timeControl)
+	mapstructure.Decode(event.Payload, &timeControl)
 
 	queue := q.queue[timeControl]
 

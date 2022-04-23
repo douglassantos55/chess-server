@@ -109,10 +109,10 @@ func TestMovePieceHandler(t *testing.T) {
 
 	go gameManager.Process(Message{
 		Type: Move,
-		Payload: MovePiece{
-			From:   "e2",
-			To:     "e4",
-			GameId: game.Id,
+		Payload: map[string]interface{}{
+			"from":    "e2",
+			"to":      "e4",
+			"game_id": game.Id.String(),
 		},
 	})
 
@@ -127,10 +127,10 @@ func TestMovePieceHandler(t *testing.T) {
 
 	go gameManager.Process(Message{
 		Type: Move,
-		Payload: MovePiece{
-			From:   "e7",
-			To:     "e5",
-			GameId: game.Id,
+		Payload: map[string]interface{}{
+			"from":    "e7",
+			"to":      "e5",
+			"game_id": game.Id.String(),
 		},
 	})
 
@@ -189,10 +189,10 @@ func TestSendsMoveEventToPlayer(t *testing.T) {
 
 	go manager.Process(Message{
 		Type: Move,
-		Payload: MovePiece{
-			From:   "e2",
-			To:     "e4",
-			GameId: params.GameId,
+		Payload: map[string]interface{}{
+			"from":    "e2",
+			"to":      "e4",
+			"game_id": params.GameId.String(),
 		},
 	})
 

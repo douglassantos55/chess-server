@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/mitchellh/mapstructure"
 )
 
 type GameManager struct {
@@ -92,8 +93,18 @@ func (g *GameManager) Process(event Message) {
 		game := g.CreateGame(payload.Players, payload.TimeControl)
 		game.Start()
 	case Move:
-		data := event.Payload.(MovePiece)
-		game := g.FindGame(data.GameId)
+		var data MovePiece
+		mapstructure.Decode(event.Payload, &data)
+
+		gameUuid, err := uuid.Parse(data.GameId)
+		if err != nil {
+			return
+		}
+
+		game := g.FindGame(gameUuid)
+		if game == nil {
+			return
+		}
 
 		if game.Move(data.From, data.To) {
 			if game.IsCheckmate() {
@@ -108,7 +119,7 @@ func (g *GameManager) Process(event Message) {
 						From:   data.From,
 						To:     data.From,
 						Time:   game.Current.left,
-						GameId: data.GameId,
+						GameId: gameUuid,
 					},
 				})
 			}
