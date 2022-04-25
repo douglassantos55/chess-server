@@ -214,7 +214,7 @@ func TestSendsMoveEventToPlayer(t *testing.T) {
 		if payload.GameId != params.GameId {
 			t.Errorf("Expected game ID to be %v, got %v", params.GameId, payload.GameId)
 		}
-		if payload.Time < time.Second {
+		if payload.Time < time.Second.Milliseconds() {
 			t.Errorf("Expected 1s, got %v", payload.Time)
 		}
 	}

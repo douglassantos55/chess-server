@@ -1,8 +1,6 @@
 package pkg
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 )
 
@@ -57,10 +55,10 @@ type MovePiece struct {
 }
 
 type MoveResponse struct {
-	From   string        `json:"from"`
-	To     string        `json:"to"`
-	Time   time.Duration `json:"time"`
-	GameId uuid.UUID     `json:"game_id"`
+	From   string    `json:"from"`
+	To     string    `json:"to"`
+	Time   int64     `json:"time"`
+	GameId uuid.UUID `json:"game_id"`
 }
 
 type GameOverResponse struct {

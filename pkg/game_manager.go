@@ -121,7 +121,7 @@ func (g *GameManager) Process(event Message) {
 						Payload: MoveResponse{
 							From:   move.From.String(),
 							To:     move.To.String(),
-							Time:   game.Current.left,
+							Time:   game.Current.left.Milliseconds(),
 							GameId: gameUuid,
 						},
 					})
