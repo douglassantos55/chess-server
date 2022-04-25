@@ -290,7 +290,7 @@ func TestWhiteResign(t *testing.T) {
 	go gameManager.Process(Message{
 		Player:  p1,
 		Type:    Resign,
-		Payload: params.GameId,
+		Payload: params.GameId.String(),
 	})
 
 	select {
@@ -338,7 +338,7 @@ func TestBlackResign(t *testing.T) {
 	go gameManager.Process(Message{
 		Player:  p2,
 		Type:    Resign,
-		Payload: params.GameId,
+		Payload: params.GameId.String(),
 	})
 
 	select {

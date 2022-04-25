@@ -129,10 +129,12 @@ func (g *GameManager) Process(event Message) {
 			}
 		}
 	case Resign:
-		gameId := event.Payload.(uuid.UUID)
-		game := g.FindGame(gameId)
+		gameId, err := uuid.Parse(event.Payload.(string))
 
-		game.GameOver(event.Player, "Resignation")
+		if err == nil {
+			game := g.FindGame(gameId)
+			game.GameOver(event.Player, "Resignation")
+		}
 	case Disconnected:
 		game := g.FindPlayerGame(event.Player)
 
