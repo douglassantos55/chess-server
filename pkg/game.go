@@ -184,8 +184,8 @@ func (g *Game) IsCheckmate() bool {
 
 	king := g.board.Square(g.Current.King)
 
-	hasMoves := king.HasMoves(g.Current.King, g.board)
 	threatened := g.board.IsThreatened(g.Current.King, king.Color)
+	hasMoves := king.HasMoves(g.Current.King, g.board)
 	canBlock := g.board.CanBlock(threatened, king.Color)
 
 	return len(threatened) > 0 && !hasMoves && !canBlock

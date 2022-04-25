@@ -19,6 +19,7 @@ type AllowedMove struct {
 type Movement interface {
 	HasMoves(from string, board *Board) bool
 	IsValid(from, to string) bool
+	CanCapture(from, to string, color Color, board *Board) bool
 	IsAllowed(from, to string, color Color, board *Board) []AllowedMove
 }
 
@@ -26,12 +27,22 @@ type Castle struct {
 	origin Square
 }
 
+func (c Castle) CanCapture(from, to string, color Color, board *Board) bool {
+	return false
+}
+
 func (c Castle) HasMoves(from string, board *Board) bool {
 	return false
 }
 
 func (c Castle) IsValid(from, to string) bool {
-	return true
+	source, _ := parseSquare(from)
+	dest, _ := parseSquare(to)
+
+	colDistance := Abs(int(source.col - dest.col))
+	rowDistance := source.row - dest.row
+
+	return from == c.origin.String() && rowDistance == 0 && colDistance == 2
 }
 
 func (c Castle) IsAllowed(from, to string, color Color, board *Board) []AllowedMove {
@@ -84,6 +95,20 @@ type Forward struct {
 	moved   bool
 }
 
+func (f Forward) CanCapture(from, to string, color Color, board *Board) bool {
+	dest, destErr := parseSquare(to)
+	source, sourceErr := parseSquare(from)
+
+	if destErr == nil || sourceErr == nil {
+		piece := board.Square(to)
+		colDistance := int(dest.col - source.col)
+
+		return Abs(colDistance) == Abs(f.squares) && (piece != Empty() && piece.Color != color)
+	}
+
+	return false
+}
+
 func (f Forward) HasMoves(from string, board *Board) bool {
 	piece := board.Square(from)
 	square, err := parseSquare(from)
@@ -92,24 +117,27 @@ func (f Forward) HasMoves(from string, board *Board) bool {
 		return false
 	}
 
-	to := square.Up()
+	to := square.Up().String()
 
-	return len(f.IsAllowed(from, to.String(), piece.Color, board)) > 0 &&
-		len(board.IsThreatened(to.String(), piece.Color)) == 0
+	return f.IsValid(from, to) && len(f.IsAllowed(from, to, piece.Color, board)) > 0 &&
+		len(board.IsThreatened(to, piece.Color)) == 0
 }
 
 func (f Forward) IsAllowed(from, to string, color Color, board *Board) []AllowedMove {
-	piece := board.Square(to)
 	dest, destErr := parseSquare(to)
 	source, sourceErr := parseSquare(from)
 
 	if destErr == nil || sourceErr == nil {
+		piece := board.Square(to)
 		colDistance := int(dest.col - source.col)
+
 		forward := colDistance == 0 && piece == Empty()
-		capture := Abs(colDistance) == Abs(f.squares) && (piece != Empty() && piece.Color != color)
+		capture := f.CanCapture(from, to, color, board)
 
 		if forward || capture {
+			// TODO: this doesnt work since it's no reference
 			f.moved = true
+
 			return []AllowedMove{{
 				From: source,
 				To:   dest,
@@ -136,25 +164,41 @@ type Straight struct {
 	squares int
 }
 
+func (s Straight) CanCapture(from, to string, color Color, board *Board) bool {
+	return len(s.IsAllowed(from, to, color, board)) > 0
+}
+
 func (s Straight) HasMoves(from string, board *Board) bool {
+	piece := board.Square(from)
 	square, err := parseSquare(from)
+
+	if piece.king {
+		board.matrix[square.row][square.col] = Empty()
+	}
+
+	defer func() {
+		if piece.king {
+			board.matrix[square.row][square.col] = piece
+		}
+	}()
 
 	if err != nil {
 		return false
 	}
 
-	piece := board.Square(from)
+	squares := []string{
+		square.Up().String(),
+		square.Down().String(),
+		square.Left().String(),
+		square.Right().String(),
+	}
 
-	up := square.Up().String()
-	down := square.Down().String()
-	left := square.Left().String()
-	right := square.Right().String()
-
-	return ((len(s.IsAllowed(from, up, piece.Color, board)) > 0 && len(board.IsThreatened(up, piece.Color)) == 0) ||
-		(len(s.IsAllowed(from, down, piece.Color, board)) > 0 && len(board.IsThreatened(down, piece.Color)) == 0) ||
-		(len(s.IsAllowed(from, left, piece.Color, board)) > 0 && len(board.IsThreatened(left, piece.Color)) == 0) ||
-		(len(s.IsAllowed(from, right, piece.Color, board)) > 0 && len(board.IsThreatened(right, piece.Color)) == 0))
-
+	for _, square := range squares {
+		if len(s.IsAllowed(from, square, piece.Color, board)) > 0 && (!piece.king || len(board.IsThreatened(square, piece.Color)) == 0) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s Straight) IsAllowed(from, to string, color Color, board *Board) []AllowedMove {
@@ -200,24 +244,41 @@ type Diagonal struct {
 	squares int
 }
 
+func (d Diagonal) CanCapture(from, to string, color Color, board *Board) bool {
+	return len(d.IsAllowed(from, to, color, board)) > 0
+}
+
 func (d Diagonal) HasMoves(from string, board *Board) bool {
+	piece := board.Square(from)
 	source, err := parseSquare(from)
 
 	if err != nil {
 		return false
 	}
 
-	piece := board.Square(from)
+	if piece.king {
+		board.matrix[source.row][source.col] = Empty()
+	}
 
-	upRight := source.UpRight()
-	downRight := source.DownRight()
-	upLeft := source.UpLeft()
-	downLeft := source.DownLeft()
+	defer func() {
+		if piece.king {
+			board.matrix[source.row][source.col] = piece
+		}
+	}()
 
-	return ((len(d.IsAllowed(from, upRight.String(), piece.Color, board)) > 0 && len(board.IsThreatened(upRight.String(), piece.Color)) == 0) ||
-		(len(d.IsAllowed(from, downRight.String(), piece.Color, board)) > 0 && len(board.IsThreatened(downRight.String(), piece.Color)) == 0) ||
-		(len(d.IsAllowed(from, upLeft.String(), piece.Color, board)) > 0 && len(board.IsThreatened(upLeft.String(), piece.Color)) == 0) ||
-		(len(d.IsAllowed(from, downLeft.String(), piece.Color, board)) > 0 && len(board.IsThreatened(downLeft.String(), piece.Color)) == 0))
+	squares := []string{
+		source.UpRight().String(),
+		source.DownRight().String(),
+		source.UpLeft().String(),
+		source.DownLeft().String(),
+	}
+
+	for _, square := range squares {
+		if len(d.IsAllowed(from, square, piece.Color, board)) > 0 && (!piece.king || len(board.IsThreatened(square, piece.Color)) == 0) {
+			return true
+		}
+	}
+	return false
 }
 
 func (d Diagonal) IsAllowed(from, to string, color Color, board *Board) []AllowedMove {
@@ -260,6 +321,10 @@ func (d Diagonal) IsValid(from, to string) bool {
 
 type LMovement struct{}
 
+func (l LMovement) CanCapture(from, to string, color Color, board *Board) bool {
+	return len(l.IsAllowed(from, to, color, board)) > 0
+}
+
 func (l LMovement) HasMoves(from string, board *Board) bool {
 	source, err := parseSquare(from)
 
@@ -269,15 +334,19 @@ func (l LMovement) HasMoves(from string, board *Board) bool {
 
 	piece := board.Square(from)
 
-	up := fmt.Sprintf("%s%d", string(rune(source.col+1)), source.row+2)
-	down := fmt.Sprintf("%s%d", string(rune(source.col-1)), source.row-2)
-	left := fmt.Sprintf("%s%d", string(rune(source.col+1)), source.row-2)
-	right := fmt.Sprintf("%s%d", string(rune(source.col-1)), source.row+2)
+	squares := []string{
+		fmt.Sprintf("%s%d", string(rune(source.col+1)), source.row+2),
+		fmt.Sprintf("%s%d", string(rune(source.col-1)), source.row-2),
+		fmt.Sprintf("%s%d", string(rune(source.col+1)), source.row-2),
+		fmt.Sprintf("%s%d", string(rune(source.col-1)), source.row+2),
+	}
 
-	return (len(l.IsAllowed(from, up, piece.Color, board)) > 0 ||
-		len(l.IsAllowed(from, down, piece.Color, board)) > 0 ||
-		len(l.IsAllowed(from, left, piece.Color, board)) > 0 ||
-		len(l.IsAllowed(from, right, piece.Color, board)) > 0)
+	for _, square := range squares {
+		if len(l.IsAllowed(from, square, piece.Color, board)) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (l LMovement) IsAllowed(from, to string, color Color, board *Board) []AllowedMove {
@@ -305,11 +374,20 @@ func (l LMovement) IsValid(from, to string) bool {
 	rowDistance := Abs(dest.row - source.row)
 	colDistance := Abs(int(dest.col - source.col))
 
-	return rowDistance == 2 && colDistance == 1
+	return (rowDistance == 2 && colDistance == 1) || (colDistance == 2 && rowDistance == 1)
 }
 
 type Combined struct {
 	movements []Movement
+}
+
+func (c Combined) CanCapture(from, to string, color Color, board *Board) bool {
+	for _, movement := range c.movements {
+		if movement.CanCapture(from, to, color, board) {
+			return true
+		}
+	}
+	return false
 }
 
 func (c Combined) HasMoves(from string, board *Board) bool {
@@ -370,7 +448,11 @@ func (p *Piece) Move(from, to string, board *Board) []AllowedMove {
 	return []AllowedMove{}
 }
 
-func (p *Piece) Sees(from, square string, board *Board) bool {
+func (p *Piece) CanCapture(from, to string, board *Board) bool {
+	return p.Movement.IsValid(from, to) && p.Movement.CanCapture(from, to, p.Color, board)
+}
+
+func (p *Piece) CanMove(from, square string, board *Board) bool {
 	return p.Movement.IsValid(from, square) && len(p.Movement.IsAllowed(from, square, p.Color, board)) > 0
 }
 

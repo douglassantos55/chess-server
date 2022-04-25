@@ -200,7 +200,7 @@ func (b *Board) CanBlock(threats []Range, color Color) bool {
 					if piece != Empty() && !piece.king && piece.Color == color {
 						from := fmt.Sprintf("%s%d", string(rune(i)), j)
 
-						if piece.Sees(from, threat.cur.String(), b) {
+						if piece.CanMove(from, threat.cur.String(), b) {
 							return true
 						}
 					}
@@ -221,7 +221,7 @@ func (b *Board) IsThreatened(square string, color Color) []Range {
 			from := fmt.Sprintf("%s%d", string(rune(i)), j)
 
 			if piece != Empty() && piece.Color != color {
-				if piece.Sees(from, square, b) {
+				if piece.CanCapture(from, square, b) {
 					threatRange, _ := NewRange(from, square)
 					ranges = append(ranges, threatRange)
 				}

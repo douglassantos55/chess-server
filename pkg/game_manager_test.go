@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -459,5 +460,357 @@ func TestWhiteDisconnectEndsGame(t *testing.T) {
 
 	if gameManager.FindGame(params.GameId) != nil {
 		t.Error("Expected game to be removed")
+	}
+}
+
+func TestUnknownProblem(t *testing.T) {
+	gameManager := NewGameManager()
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go gameManager.Process(Message{
+		Type: CreateGame,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "5m",
+				Increment: "1s",
+			},
+		},
+	})
+
+	res := <-p1.Outgoing
+	<-p2.Outgoing
+
+	params := res.Payload.(GameStart)
+	game := gameManager.FindGame(params.GameId)
+
+	game.board.matrix[6]['f'] = Empty()
+	game.board.matrix[6]['g'] = Empty()
+	game.board.matrix[6]['d'] = Empty()
+	game.board.matrix[6]['e'] = Rook(White)
+	game.board.matrix[5]['d'] = Pawn(Black)
+	game.board.matrix[5]['e'] = Rook(White)
+	game.board.matrix[4]['d'] = Pawn(White)
+	game.board.matrix[3]['c'] = Bishop(White)
+	game.board.matrix[2]['c'] = Queen(Black)
+	game.board.matrix[7]['b'] = Empty()
+	game.board.matrix[7]['c'] = Empty()
+	game.board.matrix[7]['d'] = Empty()
+	game.board.matrix[7]['e'] = Empty()
+	game.board.matrix[7]['f'] = Empty()
+	game.board.matrix[7]['g'] = Empty()
+	game.board.matrix[4]['f'] = Bishop(Black)
+	game.board.matrix[4]['g'] = King(Black)
+	game.board.matrix[0]['a'] = Empty()
+	game.board.matrix[0]['b'] = Empty()
+	game.board.matrix[0]['c'] = Empty()
+	game.board.matrix[0]['d'] = Empty()
+	game.board.matrix[0]['e'] = Empty()
+	game.board.matrix[0]['f'] = Empty()
+	game.board.matrix[0]['h'] = Empty()
+	game.board.matrix[0]['g'] = King(White)
+	game.board.matrix[1]['b'] = Empty()
+	game.board.matrix[1]['c'] = Empty()
+	game.board.matrix[1]['d'] = Empty()
+	game.board.matrix[1]['e'] = Empty()
+
+	game.Current.King = "g1"
+	game.Current.Next.King = "g5"
+
+	go gameManager.Process(Message{
+		Type: Move,
+		Payload: MovePiece{
+			To:     "g7",
+			From:   "e7",
+			GameId: game.Id.String(),
+		},
+	})
+
+	<-p2.Outgoing
+	if game.board.Square("g7") != Rook(White) {
+		t.Errorf("Expected rook on g7, got %v", game.board.Square("g7"))
+	}
+}
+
+func TestYetAnotherUnknownProblem(t *testing.T) {
+	gameManager := NewGameManager()
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go gameManager.Process(Message{
+		Type: CreateGame,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "5m",
+				Increment: "1s",
+			},
+		},
+	})
+
+	res := <-p1.Outgoing
+	<-p2.Outgoing
+
+	params := res.Payload.(GameStart)
+	game := gameManager.FindGame(params.GameId)
+
+	game.board.matrix[0]['a'] = Empty()
+	game.board.matrix[0]['b'] = Empty()
+	game.board.matrix[0]['c'] = King(White)
+	game.board.matrix[0]['d'] = Knight(Black)
+	game.board.matrix[0]['e'] = Empty()
+	game.board.matrix[0]['f'] = Empty()
+	game.board.matrix[0]['g'] = Empty()
+	game.board.matrix[0]['h'] = Empty()
+
+	game.board.matrix[1]['c'] = Empty()
+	game.board.matrix[2]['c'] = Pawn(White)
+	game.board.matrix[1]['d'] = Empty()
+	game.board.matrix[3]['d'] = Pawn(White)
+	game.board.matrix[1]['e'] = Empty()
+	game.board.matrix[2]['e'] = Pawn(White)
+
+	game.board.matrix[1]['f'] = Empty()
+	game.board.matrix[5]['b'] = Bishop(White)
+	game.board.matrix[2]['f'] = Knight(White)
+	game.board.matrix[3]['f'] = Bishop(White)
+
+	game.board.matrix[7]['a'] = Empty()
+	game.board.matrix[7]['b'] = Empty()
+	game.board.matrix[7]['c'] = Empty()
+	game.board.matrix[7]['d'] = Empty()
+	game.board.matrix[7]['e'] = Empty()
+	game.board.matrix[7]['f'] = Empty()
+	game.board.matrix[7]['g'] = Empty()
+	game.board.matrix[7]['h'] = Queen(White)
+
+	game.board.matrix[6]['c'] = Empty()
+	game.board.matrix[6]['d'] = King(Black)
+	game.board.matrix[6]['e'] = Empty()
+	game.board.matrix[4]['a'] = Bishop(Black)
+	game.board.matrix[4]['d'] = Pawn(Black)
+	game.board.matrix[5]['e'] = Bishop(Black)
+
+	game.board.matrix[6]['h'] = Empty()
+	game.board.matrix[5]['h'] = Pawn(Black)
+
+	game.Current.King = "c1"
+	game.Current.Next.King = "d7"
+
+	if len(game.board.IsThreatened("d7", White)) == 0 {
+		t.Error("Black should be checked")
+	}
+
+	game.EndTurn()
+
+	go gameManager.Process(Message{
+		Type: Move,
+		Payload: MovePiece{
+			To:     "c6",
+			From:   "d7",
+			GameId: game.Id.String(),
+		},
+	})
+
+	<-p1.Outgoing
+	if !reflect.DeepEqual(game.board.Square("c6"), King(Black)) {
+		t.Errorf("Expected king on c6, got %v", game.board.Square("c6"))
+	}
+}
+
+func TestOneMoreUnknownProblem(t *testing.T) {
+	gameManager := NewGameManager()
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go gameManager.Process(Message{
+		Type: CreateGame,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "5m",
+				Increment: "1s",
+			},
+		},
+	})
+
+	res := <-p1.Outgoing
+	<-p2.Outgoing
+
+	params := res.Payload.(GameStart)
+	game := gameManager.FindGame(params.GameId)
+
+	game.board.matrix[0]['a'] = Empty()
+	game.board.matrix[0]['b'] = Empty()
+	game.board.matrix[0]['c'] = Empty()
+	game.board.matrix[0]['d'] = Empty()
+	game.board.matrix[0]['e'] = Empty()
+	game.board.matrix[0]['f'] = Empty()
+	game.board.matrix[0]['g'] = King(White)
+	game.board.matrix[0]['h'] = Empty()
+
+	game.board.matrix[1]['a'] = Empty()
+	game.board.matrix[1]['b'] = Empty()
+	game.board.matrix[1]['c'] = Empty()
+	game.board.matrix[1]['d'] = Empty()
+	game.board.matrix[1]['e'] = Bishop(White)
+	game.board.matrix[1]['f'] = Empty()
+	game.board.matrix[1]['g'] = Empty()
+
+	game.board.matrix[2]['a'] = Pawn(White)
+
+	game.board.matrix[3]['c'] = Pawn(Black)
+	game.board.matrix[3]['e'] = Pawn(White)
+	game.board.matrix[3]['g'] = Pawn(White)
+
+	game.board.matrix[4]['f'] = Pawn(White)
+	game.board.matrix[4]['g'] = Pawn(Black)
+
+	game.board.matrix[5]['a'] = King(Black)
+	game.board.matrix[5]['b'] = Pawn(Black)
+	game.board.matrix[5]['c'] = Knight(Black)
+	game.board.matrix[5]['h'] = Pawn(Black)
+
+	game.board.matrix[6]['a'] = Empty()
+	game.board.matrix[6]['b'] = Empty()
+	game.board.matrix[6]['c'] = Pawn(Black)
+	game.board.matrix[6]['d'] = Empty()
+	game.board.matrix[6]['e'] = Empty()
+	game.board.matrix[6]['f'] = Bishop(Black)
+	game.board.matrix[6]['g'] = Bishop(White)
+	game.board.matrix[6]['h'] = Empty()
+
+	game.board.matrix[7]['a'] = Empty()
+	game.board.matrix[7]['b'] = Empty()
+	game.board.matrix[7]['c'] = Empty()
+	game.board.matrix[7]['d'] = Empty()
+	game.board.matrix[7]['e'] = Empty()
+	game.board.matrix[7]['f'] = Empty()
+	game.board.matrix[7]['g'] = Empty()
+	game.board.matrix[7]['h'] = Empty()
+
+	game.Current.King = "g1"
+	game.Current.Next.King = "a6"
+
+	game.EndTurn()
+
+	go gameManager.Process(Message{
+		Type: Move,
+		Payload: MovePiece{
+			To:     "a5",
+			From:   "a6",
+			GameId: game.Id.String(),
+		},
+	})
+
+	<-p1.Outgoing
+
+	if !reflect.DeepEqual(game.board.Square("a5"), King(Black)) {
+		t.Errorf("Expected king on a5, got %v", game.board.Square("a5"))
+	}
+}
+
+func TestNoMateButShouldBeMate(t *testing.T) {
+	gameManager := NewGameManager()
+
+	p1 := NewTestPlayer()
+	p2 := NewTestPlayer()
+
+	go gameManager.Process(Message{
+		Type: CreateGame,
+		Payload: MatchParams{
+			Players: []*Player{p1, p2},
+			TimeControl: TimeControl{
+				Duration:  "5m",
+				Increment: "1s",
+			},
+		},
+	})
+
+	res := <-p1.Outgoing
+	<-p2.Outgoing
+
+	params := res.Payload.(GameStart)
+	game := gameManager.FindGame(params.GameId)
+
+	game.board.matrix[0]['a'] = Empty()
+	game.board.matrix[0]['b'] = Empty()
+	game.board.matrix[0]['c'] = Empty()
+	game.board.matrix[0]['d'] = Empty()
+	game.board.matrix[0]['e'] = Empty()
+	game.board.matrix[0]['f'] = Empty()
+	game.board.matrix[0]['g'] = Empty()
+	game.board.matrix[0]['h'] = Empty()
+
+	game.board.matrix[1]['a'] = Empty()
+	game.board.matrix[1]['b'] = Rook(Black)
+	game.board.matrix[1]['c'] = Empty()
+	game.board.matrix[1]['d'] = Empty()
+	game.board.matrix[1]['e'] = Empty()
+	game.board.matrix[1]['f'] = Empty()
+	game.board.matrix[1]['g'] = Empty()
+	game.board.matrix[1]['h'] = Empty()
+
+	game.board.matrix[2]['b'] = Pawn(Black)
+	game.board.matrix[2]['g'] = King(White)
+	game.board.matrix[2]['h'] = Pawn(White)
+
+	game.board.matrix[3]['g'] = Pawn(White)
+
+	game.board.matrix[6]['a'] = Rook(White)
+	game.board.matrix[6]['b'] = Empty()
+	game.board.matrix[6]['c'] = Empty()
+	game.board.matrix[6]['d'] = Empty()
+	game.board.matrix[6]['e'] = Empty()
+	game.board.matrix[6]['f'] = Empty()
+	game.board.matrix[6]['g'] = Empty()
+	game.board.matrix[6]['h'] = Rook(White)
+
+	game.board.matrix[7]['a'] = Empty()
+	game.board.matrix[7]['b'] = Empty()
+	game.board.matrix[7]['c'] = Empty()
+	game.board.matrix[7]['d'] = Empty()
+	game.board.matrix[7]['e'] = Empty()
+	game.board.matrix[7]['f'] = King(Black)
+	game.board.matrix[7]['g'] = Empty()
+	game.board.matrix[7]['h'] = Empty()
+
+	game.Current.King = "g3"
+	game.Current.Next.King = "f8"
+
+	if game.board.Square("h7") != Rook(White) {
+		t.Errorf("Expected rook on h7, got %v", game.board.Square("h7"))
+	}
+
+	go gameManager.Process(Message{
+		Type: Move,
+		Payload: MovePiece{
+			To:     "h8",
+			From:   "h7",
+			GameId: game.Id.String(),
+		},
+	})
+
+	winner := <-p1.Outgoing
+	if winner.Type != GameOver {
+		t.Errorf("Expected game over, got %v", winner.Type)
+	}
+	payload := winner.Payload.(GameOverResponse)
+	if !payload.Winner {
+		t.Errorf("Expected white to win by checkmate")
+	}
+
+	loser := <-p2.Outgoing
+	if loser.Type != GameOver {
+		t.Errorf("Expected game over, got %v", loser.Type)
+	}
+
+	payload = loser.Payload.(GameOverResponse)
+	if payload.Winner {
+		t.Errorf("Expected black to lose by checkmate")
 	}
 }

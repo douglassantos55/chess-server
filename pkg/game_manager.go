@@ -108,10 +108,11 @@ func (g *GameManager) Process(event Message) {
 
 		moves := game.Move(data.From, data.To)
 		if len(moves) > 0 {
+			game.EndTurn()
+
 			if game.IsCheckmate() {
 				game.Checkmate()
 			} else {
-				game.EndTurn()
 				game.StartTurn()
 
 				for _, move := range moves {

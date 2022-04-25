@@ -85,6 +85,25 @@ func TestLMovement(t *testing.T) {
 	if l.IsValid("b1", "c2") {
 		t.Error("Should not move from b1 to c2")
 	}
+
+	if !l.IsValid("f7", "h8") {
+		t.Error("Should move from f7 to h8")
+	}
+	if !l.IsValid("h8", "f7") {
+		t.Error("Should move from h8 to f7")
+	}
+	if !l.IsValid("c7", "a8") {
+		t.Error("Should move from c7 to a8")
+	}
+	if !l.IsValid("a8", "c7") {
+		t.Error("Should move from a8 to c7")
+	}
+	if !l.IsValid("e2", "c3") {
+		t.Error("Should move from c3 to e4")
+	}
+	if !l.IsValid("c3", "a4") {
+		t.Error("Should move from c3 to a4")
+	}
 }
 
 func TestForwardMovement(t *testing.T) {
@@ -195,6 +214,51 @@ func TestStraightIsAllowed(t *testing.T) {
 	}
 	if len(straight.IsAllowed("a3", "a7", White, NewBoard())) == 0 {
 		t.Error("Should be able to capture pawn at a7")
+	}
+
+	board := NewBoard()
+
+	board.matrix[6]['f'] = Empty()
+	board.matrix[6]['g'] = Empty()
+	board.matrix[6]['d'] = Empty()
+	board.matrix[6]['e'] = Rook(White)
+	board.matrix[5]['d'] = Pawn(Black)
+	board.matrix[5]['e'] = Rook(White)
+	board.matrix[4]['d'] = Pawn(White)
+	board.matrix[3]['c'] = Bishop(White)
+	board.matrix[2]['c'] = Queen(Black)
+	board.matrix[7]['b'] = Empty()
+	board.matrix[7]['c'] = Empty()
+	board.matrix[7]['d'] = Empty()
+	board.matrix[7]['e'] = Empty()
+	board.matrix[7]['f'] = Empty()
+	board.matrix[7]['g'] = Empty()
+	board.matrix[4]['f'] = Bishop(Black)
+	board.matrix[4]['g'] = King(Black)
+	board.matrix[0]['a'] = Empty()
+	board.matrix[0]['b'] = Empty()
+	board.matrix[0]['c'] = Empty()
+	board.matrix[0]['d'] = Empty()
+	board.matrix[0]['e'] = Empty()
+	board.matrix[0]['f'] = Empty()
+	board.matrix[0]['h'] = Empty()
+	board.matrix[0]['g'] = King(White)
+	board.matrix[1]['b'] = Empty()
+	board.matrix[1]['c'] = Empty()
+	board.matrix[1]['d'] = Empty()
+	board.matrix[1]['e'] = Empty()
+
+	rook := board.Square("e7")
+	if len(rook.Move("e7", "g7", board)) == 0 {
+		t.Error("Should be able to move from e7 to g7")
+	}
+
+	if len(straight.IsAllowed("e7", "g7", White, board)) == 0 {
+		t.Error("Should be able to move from e7 to g7")
+	}
+
+	if len(board.Move("e7", "g7")) == 0 {
+		t.Error("Should be able to move from e7 to g7")
 	}
 }
 
@@ -346,7 +410,7 @@ func TestSeesDiagonal(t *testing.T) {
 		t.Errorf("Expected black queen on a5, got %v", queen)
 	}
 
-	if !queen.Sees("a5", "e1", board) {
+	if !queen.CanMove("a5", "e1", board) {
 		t.Error("Expected black queen on a5 to see e1")
 	}
 }
@@ -367,7 +431,7 @@ func TestSeesStraight(t *testing.T) {
 		t.Errorf("Expected black queen on e4, got %v", queen)
 	}
 
-	if !queen.Sees("e4", "e1", board) {
+	if !queen.CanMove("e4", "e1", board) {
 		t.Error("Expected black queen on e4 to see e1")
 	}
 }
